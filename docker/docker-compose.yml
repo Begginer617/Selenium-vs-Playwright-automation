@@ -1,0 +1,75 @@
+version: "3.9"
+
+services:
+  # ============================
+  # SELENIUM GRID – HUB
+  # ============================
+  selenium-hub:
+    image: selenium/hub:4.18.1
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"   # UI + endpoint do testów
+    networks:
+      - testnet
+
+  # ============================
+  # SELENIUM GRID – CHROME NODE
+  # ============================
+  chrome:
+    image: selenium/node-chrome:4.18.1
+    container_name: chrome
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - testnet
+
+  # ============================
+  # PLAYWRIGHT (oficjalny kontener)
+  # ============================
+  playwright:
+    image: mcr.microsoft.com/playwright/python:v1.42.0-focal
+    container_name: playwright
+    working_dir: /tests
+    volumes:
+      - ../playwright_tests:/tests
+    networks:
+      - testnet
+    command: ["sleep", "infinity"]  # kontener czeka na polecenia
+
+  # ============================
+  # ALLURE REPORT – GENERATOR
+  # ============================
+  allure-generator:
+    image: frankescobar/allure-docker-service
+    container_name: allure-generator
+    ports:
+      - "5050:5050"
+    volumes:
+      - ../reports/allure-results:/app/allure-results
+      - ../reports/allure-report:/app/allure-report
+    networks:
+      - testnet
+
+  # ============================
+  # ALLURE REPORT – UI
+  # ============================
+  allure-ui:
+    image: frankescobar/allure-docker-service-ui
+    container_name: allure-ui
+    ports:
+      - "5252:5252"
+    depends_on:
+      - allure-generator
+    networks:
+      - testnet
+
+# ============================
+# WSPÓLNA SIEĆ
+# ============================
+networks:
+  testnet:
+    driver: bridge
