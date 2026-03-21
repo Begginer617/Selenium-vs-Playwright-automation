@@ -1,3 +1,11 @@
+Login: jaxons.danniels@company.com
+
+Hasło: User1234
+
+URL: https://demos.telerik.com/kendo-ui/eshop/Account/Login
+
+
+
 TC-01: End-to-End Purchase Flow (Od strony głównej do koszyka).
 
 TC-02: Product Search and Sorting Accuracy (Wyszukiwanie i sprawdzanie, czy wyniki są trafne).
@@ -33,9 +41,23 @@ Cel: Weryfikacja, czy suma koszyka (Total Price) przelicza się poprawnie.
 
 [TC-04] Nawigacja Menu (Hover)
 
-Kroki: Najechanie myszką na menu -> Wybór kategorii -> Sprawdzenie URL.
+Plan testu [TC-04] - Navigation Menu Integrity
 
-Cel: Porównanie obsługi zdarzeń hover (Selenium Actions vs Playwright hover).
+Sekcja Categories:
+
+Hover na "Categories".
+
+Kliknięcie po kolei w: Bikes, Clothes, Components.
+
+Po każdym kliknięciu: asercja URL (czy jesteśmy na dobrej podstronie) i powrót do Home Page.
+
+Sekcja User Profile:
+
+Hover na ikonkę profilu (ludzik).
+
+Kliknięcie po kolei w: Profile, Orders (Logout możemy pominąć lub sprawdzić tylko czy przekierowuje do Login Page).
+
+Weryfikacja widoczności nagłówków na tych stronach.
 
 [TC-05] Logowanie (Ścieżka negatywna)
 
