@@ -96,7 +96,11 @@
    
    🧹 Cleaning Up Docker (optional)
    docker system prune -a
-   
+
+   ENV
+   CREDENTIALS:
+   Email: jaxons.danniels@company.com
+   Password: User1234
    
    
 ## Architecture
