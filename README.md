@@ -15,7 +15,27 @@
       docker-compose.yml
    /playwright_tests
    /selenium_tests
+
+   FOR 💻 Local Development (Windows / PyCharm)
+   1. Installatiion
+   pip install -r requirements.txt
+
+   2.Running test with Selenium (z Windowsem conetting with Gride in Docker)
+   python -m pytest selenium_tests/ --alluredir=reports/allure-results
+
+   3. Allure report visuallisation
+   allure serve reports/allure-results
+
+   4. Downloading Allure report 
+   allure generate reports/allure-results -o reports/allure-report --clean
+
+   Important info:
+   This will create an `allure-report` folder containing a ready-to-use `index.html` file. 
+   Note: Due to browser security restrictions, you cannot simply double-click to open it (it will be empty). 
+   It must be served by a server (such as your Docker Allure UI running on localhost:5252).
+
    
+   FOR DOCKER
    
    🐳 How to Start the Environment
    From the docker directory run:
