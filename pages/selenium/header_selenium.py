@@ -9,6 +9,7 @@ class HeaderSelenium(BasePage):
     PROFILE_ICON = (By.XPATH, "//span[contains(@class, 'k-i-user')]/ancestor::span[contains(@class, 'k-menu-link')]")
     PROFILE_DROPDOWN_LINK = (By.XPATH, "//a[contains(@href, '/kendo-ui/eshop/Account/Profile')]")
 
+
     # 2. Metody wykonujące akcje
     def go_to_profile_icon(self):
         # Czekamy na ikonę i robimy Hover
