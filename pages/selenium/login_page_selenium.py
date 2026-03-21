@@ -12,19 +12,20 @@ class LoginPage(BasePage):
     # (Validation Summary)
     NAME_ERROR_VALIDATION_SUMMARY_LIST = (By.XPATH,
                                           "//div[contains(@class, 'k-validation-summary')]//li[contains(text(), 'First and Last name')]")
-    EMAIL_ERROR_TVALIDATION_SUMMARY_LIST = (By.XPATH,
-                                            "//div[contains(@class, 'k-validation-summary')]//li[contains(text(), 'Email is required')]")
+    EMAIL_ERROR_VALIDATION_SUMMARY_LIST = (By.XPATH,
+                                           "//div[contains(@class, 'k-validation-summary')]//li[contains(text(), 'Email is required')]")
     PASS_ERROR_VALIDATION_SUMMARY_LIST = (By.XPATH,
                                           "//div[contains(@class, 'k-validation-summary')]//li[contains(text(), 'Please enter password')]")
-    PASSWORD_REQUIREMENTS_VALIDATION_SUMMARY_LIST = (By.XPATH, "")
+    PASSWORD_REQUIREMENTS_VALIDATION_SUMMARY_LIST = (By.XPATH,
+                                                     "//a[contains(text(), 'Your password must be at least 8 symbols ')]")
 
     # --- BŁĘDY POD INPUTAMI (Dół) ---
     NAME_ERROR_BOTTOM = (By.ID, "FirstAndLastName-error")
     EMAIL_ERROR_BOTTOM = (By.ID, "Email-error")
-    PASS_ERROR_BOTTOM = (By.ID, "Password-error")
-    PLEASE_ENTER_FIRST_AND_LAST_NAME_SEPARATED_BY_A_SPACE_BOTTOM = (By.XPATH, "")
-    EMAIL_IS_NOT_VALID_EMAIL_BOTTOM = (By.XPATH, "")
-    PASSWORD_REQUIREMENTS_BOTTOM = (By.XPATH, "")
+    PASS_ERROR_BOTTOM = (By.XPATH, "//span[@id='Password-error' and contains(text(), 'Please enter password)]")
+    PLEASE_ENTER_FIRST_AND_LAST_NAME_SEPARATED_BY_A_SPACE_BOTTOM = (By.XPATH, "//span[@id='FirstAndLastName-error' and contains(text(), 'separated by a space')]")
+    EMAIL_IS_NOT_VALID_EMAIL_BOTTOM = (By.XPATH, "//span[@id='Email-error' and text()='Email is not valid email']")
+    PASSWORD_REQUIREMENTS_BOTTOM = (By.XPATH, "//span[@id='Password-error' and contains(text(), '8 symbols')]")
 
     """
      Web element locators - FORM Register and Login
