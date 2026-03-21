@@ -1,0 +1,52 @@
+TC-01: End-to-End Purchase Flow (Od strony głównej do koszyka).
+
+TC-02: Product Search and Sorting Accuracy (Wyszukiwanie i sprawdzanie, czy wyniki są trafne).
+
+TC-03: Shopping Cart Value Validation (Logika przeliczania sumy produktów).
+
+TC-04: Header Navigation & Hover Menu Integrity (Czy menu się rozwija i prowadzi gdzie trzeba).
+
+TC-05: User Authentication Security (Negative) (Próba logowania na błędne dane).
+
+
+
+
+
+
+[TC-01] Zakup produktu (End-to-End)
+
+Kroki: Strona główna -> Kliknięcie produktu -> Dodaj do koszyka -> Przejście do kasy.
+
+Cel: Sprawdzenie pełnego procesu biznesowego.
+
+[TC-02] Wyszukiwanie i sortowanie
+
+Kroki: Wpisanie frazy -> Szukaj -> Zmiana sortowania na "Cena rosnąco".
+
+Cel: Sprawdzenie poprawności wyników wyszukiwania i filtrów.
+
+[TC-03] Logika koszyka (Obliczenia)
+
+Kroki: Dodanie 2 różnych produktów -> Zmiana ilości sztuk.
+
+Cel: Weryfikacja, czy suma koszyka (Total Price) przelicza się poprawnie.
+
+[TC-04] Nawigacja Menu (Hover)
+
+Kroki: Najechanie myszką na menu -> Wybór kategorii -> Sprawdzenie URL.
+
+Cel: Porównanie obsługi zdarzeń hover (Selenium Actions vs Playwright hover).
+
+[TC-05] Logowanie (Ścieżka negatywna)
+
+Kroki: Próba logowania na błędne dane.
+
+Cel: Weryfikacja obsługi komunikatów o błędach i asercji tekstowych.
+
+
+
+### ✅ Progress Checklist
+- [x] Środowisko Docker (Selenium Grid + Allure)
+- [x] Automatyczne screenshoty w Allure
+- [ ] Scenariusz 1: Zakup produktu (Selenium)
+- [ ] Scenariusz 1: Zakup produktu (Playwright)

@@ -207,3 +207,11 @@ marimo/_lsp/
 __marimo__/
 
 .idea/
+
+# Allure reports and results
+reports/
+allure-results/
+allure-report/
+
+# Pytest specific
+.pytest_cache/
