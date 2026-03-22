@@ -3,12 +3,12 @@
    ## README — Docker Selenium vs. Playwright – Automation – A Final Project for a Postgraduate Studies in Test Automation
    
    🚀 Overview
-   This project provides a complete automated testing environment using:
-   - Selenium Grid 4 (Hub + Chrome Node)
-   - Playwright (Python)
-   - Allure Docker Service (report generator + UI)
-   - Docker Compose for orchestration
-   The environment allows running Selenium tests on a distributed Grid and Playwright tests inside a dedicated container, with reporting handled by Allure.
+   Project Architecture
+   The environment is orchestrated via Docker Compose and includes:
+   Selenium Grid 4 (Hub + Chrome Node)
+   Playwright (Python environment)
+   Allure Docker Service (Report generation + Web UI)
+   NoVNC (Real-time browser preview)
    
    🧱 Project Structure
    /docker
@@ -23,7 +23,7 @@
    pip install -r requirements.txt
    ```
 
-   2.Running test with Selenium (z Windowsem conetting with Gride in Docker)
+   2. To run tests from your local machine against the Docker Selenium Grid:
   
    ```bash
    python -m pytest selenium_tests/ --alluredir=reports/allure-results
@@ -31,8 +31,15 @@
 
    3. Allure report visuallisation
 
-  ```bash
+   Live Server:
+   ```bash
    allure serve reports/allure-results
+   ```
+
+   Static Report Generation:
+
+   ```bash
+   allure generate reports/allure-results -o reports/allure-report --clean
    ```
 
    5. Downloading Allure report 
@@ -54,10 +61,11 @@
    ```bash
    docker ps
    ```
+
+   IF not running DO steps below:
    
    🐳 How to Start the Environment
-   From the docker directory run:
-
+   From the project root directory, run:
    ```bash
    docker compose up -d
    ```
@@ -65,7 +73,13 @@
    This will:
    - pull all required images (first run only),
    - start all containers in the background.
-   
+
+   ```bash
+   Service	         URL	                  Description
+   Selenium Grid UI	http://localhost:4444	Manage and monitor Grid nodes
+   VNC Live Preview	http://localhost:7900	Watch tests running in real-time (No password)
+   Allure Report UI	http://localhost:5252	View automated test reports   
+   ```
    ## 🔍 How to Check if Everything Is Running
    
   ```bash
