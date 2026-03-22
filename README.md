@@ -1,6 +1,6 @@
-   # Selenium-vs-Playwright-automation
+   ## Selenium-vs-Playwright-automation
    
-   # README — Docker Selenium vs. Playwright – Automation – A Final Project for a Postgraduate Studies in Test Automation
+   ## README — Docker Selenium vs. Playwright – Automation – A Final Project for a Postgraduate Studies in Test Automation
    
    🚀 Overview
    This project provides a complete automated testing environment using:
@@ -18,16 +18,28 @@
 
    FOR 💻 Local Development (Windows / PyCharm)
    1. Installatiion
+
+   ```bash
    pip install -r requirements.txt
+   ```
 
    2.Running test with Selenium (z Windowsem conetting with Gride in Docker)
+  
+   ```bash
    python -m pytest selenium_tests/ --alluredir=reports/allure-results
+   ```
 
    3. Allure report visuallisation
-   allure serve reports/allure-results
 
-   4. Downloading Allure report 
+  ```bash
+   allure serve reports/allure-results
+   ```
+
+   5. Downloading Allure report 
+
+   ```bash
    allure generate reports/allure-results -o reports/allure-report --clean
+   ```
 
    Important info:
    This will create an `allure-report` folder containing a ready-to-use `index.html` file. 
@@ -35,22 +47,30 @@
    It must be served by a server (such as your Docker Allure UI running on localhost:5252).
 
    
-   FOR DOCKER
+   ## FOR DOCKER
 
    Checking status of docker:
-   
+
+   ```bash
    docker ps
+   ```
    
    🐳 How to Start the Environment
    From the docker directory run:
+
+   ```bash
    docker compose up -d
+   ```
    
    This will:
    - pull all required images (first run only),
    - start all containers in the background.
    
-   🔍 How to Check if Everything Is Running
+   ## 🔍 How to Check if Everything Is Running
+   
+  ```bash
    docker ps
+   ```
    
    You should see containers:
    - selenium-hub
@@ -61,50 +81,88 @@
    All with status Up.
    
    🌐 Service URLs
-   ✔ Selenium Grid UI
-   http://localhost:4444
    
+   ✔ Selenium Grid UI
+   
+   ```bash
+   http://localhost:4444
+   ```
+
    ✔ Allure Report UI
+
+   ```bash
    http://localhost:5252
+   ```
    
    🧪 Running Tests
    ▶ Playwright tests (inside container)
+   
+   ```bash
    docker exec -it playwright bash
    pytest .
+   ```
    
    
    ▶ Selenium tests (local or container)
    Use the remote WebDriver URL:
+
+   ```bash
    http://selenium-hub:4444/wd/hub
+   ```
+   
    
    Example:
+   ```bash
    webdriver.Remote(
        command_executor="http://selenium-hub:4444/wd/hub",
        options=ChromeOptions()
    )
+   ```
    
    
    📊 Generating Allure Reports
    Allure Docker Service automatically watches the results directory.
    To trigger report generation manually:
+   
+   ```bash
    curl -X POST http://localhost:5252/generate-report
+   ```
    
    🛑 Stopping the Environment
+   
+   ```bash
    docker compose down
+   ```
    
    To remove volumes as well:
+   
+   ```bash
    docker compose down -v
+   ```
    
    🔄 Restarting
+   
+   ```bash
    docker compose restart
+   ```
    
    🧹 Cleaning Up Docker (optional)
-   docker system prune -a
 
+   ```bash
+   docker system prune -a
+   ```
+  
    ENV
    CREDENTIALS:
-   Email: jaxons.danniels@company.com
-   Password: User1234
+   
+   Email:
+   ```bash
+   jaxons.danniels@company.com
+   ```
+   Password: 
+   ```bash
+   User1234
+   ```
    
    
 ## Architecture
