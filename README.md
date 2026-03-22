@@ -38,6 +38,7 @@
    FOR DOCKER
 
    Checking status of docker:
+   
    docker ps
    
    🐳 How to Start the Environment
