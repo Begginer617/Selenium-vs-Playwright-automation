@@ -1,3 +1,11 @@
+Login: jaxons.danniels@company.com
+
+Hasło: User1234
+
+URL: https://demos.telerik.com/kendo-ui/eshop/Account/Login
+
+
+
 TC-01: End-to-End Purchase Flow (Od strony głównej do koszyka).
 
 TC-02: Product Search and Sorting Accuracy (Wyszukiwanie i sprawdzanie, czy wyniki są trafne).
@@ -33,9 +41,23 @@ Cel: Weryfikacja, czy suma koszyka (Total Price) przelicza się poprawnie.
 
 [TC-04] Nawigacja Menu (Hover)
 
-Kroki: Najechanie myszką na menu -> Wybór kategorii -> Sprawdzenie URL.
+Plan testu [TC-04] - Navigation Menu Integrity
 
-Cel: Porównanie obsługi zdarzeń hover (Selenium Actions vs Playwright hover).
+Sekcja Categories:
+
+Hover na "Categories".
+
+Kliknięcie po kolei w: Bikes, Clothes, Components.
+
+Po każdym kliknięciu: asercja URL (czy jesteśmy na dobrej podstronie) i powrót do Home Page.
+
+Sekcja User Profile:
+
+Hover na ikonkę profilu (ludzik).
+
+Kliknięcie po kolei w: Profile, Orders (Logout możemy pominąć lub sprawdzić tylko czy przekierowuje do Login Page).
+
+Weryfikacja widoczności nagłówków na tych stronach.
 
 [TC-05] Logowanie (Ścieżka negatywna)
 
@@ -50,3 +72,81 @@ Cel: Weryfikacja obsługi komunikatów o błędach i asercji tekstowych.
 - [x] Automatyczne screenshoty w Allure
 - [ ] Scenariusz 1: Zakup produktu (Selenium)
 - [ ] Scenariusz 1: Zakup produktu (Playwright)
+
+
+
+
+
+
+
+
+
+
+Architektura Twojego Projektu
+DOCKER (Fundament/Środowisko)
+
+To tutaj "żyje" przeglądarka (Chrome/Firefox).
+
+Docker izoluje przeglądarkę od Twojego systemu operacyjnego. Dzięki temu testy zawsze odpalają się w identycznych warunkach (np. na Linuxie wewnątrz kontenera).
+
+Łączność: Czeka na instrukcje na konkretnym porcie (zazwyczaj 4444).
+
+PYTEST (Silnik/Mózg)
+
+To on zarządza tym, co i kiedy ma się wydarzyć.
+
+Przeszukuje Twoje foldery, znajduje funkcje zaczynające się od test_ i decyduje o ich uruchomieniu.
+
+To on zbiera wyniki (Pass/Fail) i wysyła je do Allure.
+
+FIXTURES (Łącznik/Logistyka)
+
+To jest "klej" projektu. Kiedy Pytest widzi, że test potrzebuje drivera lub login_page, fixture idzie do DriverFactory.
+
+Fixture mówi: "Hej Docker, otwórz mi Chrome'a". Kiedy Docker odpowiada "Gotowe, oto sesja", fixture przekazuje to połączenie do testu.
+
+Teardown: Po teście fixture mówi: "Dobra Docker, zamknij tę kartę, sprzątamy".
+
+PAGE OBJECT MODEL (Mapy/Instrukcje)
+
+Twoje pliki LoginPage, BasePage.
+
+One nie wiedzą nic o Dockerze ani o Pyteście. One wiedzą tylko: "Jeśli chcesz kliknąć Register, użyj tego XPatha".
+
+To "tłumacz" między językiem biznesowym (click_register) a technicznym (By.XPATH, "...").
+
+🔄 Jak płynie sygnał? (Krok po kroku)
+Wpisujesz w terminalu: python -m pytest.
+
+Pytest znajduje test_registration_form_validation.
+
+Pytest widzi, że test chce login_page, więc odpala Fixture login_page.
+
+Fixture login_page widzi, że sama potrzebuje drivera, więc odpala Fixture driver.
+
+Fixture driver wysyła prośbę do Dockera.
+
+Docker odpala Chrome'a i przesyła "uchwyt" (session ID) z powrotem.
+
+Teraz Twój test ma wszystko: ma przeglądarkę i ma "mapę" (LoginPage).
+
+Test wykonuje login_page.trigger_errors() -> Selenium wysyła komendy HTTP do kontenera Dockera -> Docker klika w wirtualnej przeglądarce.
+
+Na koniec testu Fixture zamyka sesję, a Allure generuje raport.
+
+💡 Dlaczego to jest dobre?
+Jeśli zmienisz wersję Chrome, zmieniasz tylko jedną linijkę w Dockerze.
+
+Jeśli zmieni się wygląd strony, zmieniasz tylko Page Object.
+
+Jeśli chcesz zmienić sposób raportowania, zmieniasz tylko Pytest/Allure.
+
+
+
+
+
+
+
+
+
+
