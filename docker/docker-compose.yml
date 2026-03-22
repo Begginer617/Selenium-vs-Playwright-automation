@@ -24,6 +24,8 @@ services:
       - SE_EVENT_BUS_HOST=selenium-hub
       - SE_EVENT_BUS_PUBLISH_PORT=4442
       - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - VNC_NO_PASSWORD=1
+      - START_XVFB=true
     networks:
       - testnet
 
@@ -73,3 +75,6 @@ services:
 networks:
   testnet:
     driver: bridge
+
+
+
