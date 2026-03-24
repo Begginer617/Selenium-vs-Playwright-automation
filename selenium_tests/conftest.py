@@ -22,6 +22,11 @@ def registration_page(driver):
     return RegistrationPage(driver)
 
 
+@pytest.fixture
+def login_page(driver):
+    return  login_page(driver)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
