@@ -2,7 +2,7 @@ from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
 
 
-class LoginPage(BasePage):
+class RegistrationPage(BasePage):
     """
     Web element locators - Registration - Errors Registration
     """
@@ -27,17 +27,23 @@ class LoginPage(BasePage):
     """
     Web element locators - Registration - Errors under inputs (Dół)
     """
-    # --- BŁĘDY POD INPUTAMI (Dół) ---
-    # Stan: Empty fields
+    # --- Errors under Inputs  ---
+    # Stan: Empty fields errors
+    # 1
     EMPTY_FIRST_AND_LAST_NAME_BOTTOM = (By.ID, "FirstAndLastName-error")
+    # 2
     EMPTY_EMAIL_ERROR_BOTTOM = (By.ID, "Email-error")
+    # 3
     EMPTY_PASSWORD_ERROR_BOTTOM = (By.XPATH,
                                    "//span[@id='Password-error' and contains(text(), 'Please enter password')]")
 
-    # Stan: Wrong Formats
+    # Stan: Wrong Formats errors
+    # 4
     FIRST_AND_LAST_NAME_SEPARATED_BY_A_SPACE_BOTTOM = (By.XPATH,
                                                        "//span[@id='FirstAndLastName-error' and contains(text(), 'separated by a space')]")
+    # 5
     EMAIL_IS_NOT_VALID_EMAIL_BOTTOM = (By.XPATH, "//span[@id='Email-error' and text()='Email is not valid email']")
+    # 6
     PASSWORD_REQUIREMENTS_BOTTOM = (By.XPATH, "//span[@id='Password-error' and contains(text(), '8 symbols')]")
 
     """
@@ -81,7 +87,7 @@ class LoginPage(BasePage):
         self.wait_for_visible(self.PASSWORD_INPUT).send_keys(short_password)
         self.click_register()
 
-    def registration_url(self, driver):
+    def open_registration_url(self):
         self.driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
 
 
