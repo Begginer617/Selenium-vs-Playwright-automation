@@ -1,15 +1,17 @@
 import pytest
-from pages.selenium.registration_page_selenium import LoginPage
+from pages.selenium.registration_page_selenium import RegistrationPage
 
 
 @pytest.fixture
 def registration_page(driver):
-    return LoginPage(driver)
+    return RegistrationPage(driver)
 
 
 def test_registration_form_validation(driver, registration_page):
     # 1. Wejdź na stronę
-    driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
+    # driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
+    registration_page.open_registration_url()
+
 
     # --- ETAP 1: TEST PUSTEGO FORMULARZA ---
     # Klikamy register bez wpisywania czegokolwiek
@@ -48,25 +50,6 @@ def test_registration_form_validation(driver, registration_page):
     assert "8 symbols" in registration_page.wait_for_visible(registration_page.PASSWORD_REQUIREMENTS_BOTTOM).text
 
     print("✅ Sukces: Wszystkie 12 punktów walidacji sprawdzonych!")
-
-    @pytest.fixture
-    def test_login_page_positive(driver, login_page):
-        # 1. Wejdź na stronę register
-        driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
-        # 2. Kliknij w button login na stronie rejestracji i zrob asercje
-        driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Login")
-        # 2. Kliknij pole Email i wyczyścić pole email
-        # 3. wpisz prawidłowy email
-        # 3. Kliknij password i wyczyścić pole password
-        #4.  Kliknij pole password i wpisz passsword
-
-
-
-
-
-#
-
-
 
 
 
