@@ -1,7 +1,7 @@
 import pytest
 from utils.driver_factory import DriverFactory
 import allure
-from pages.selenium.login_page_selenium import LoginPage
+from pages.selenium.registration_page_selenium import RegistrationPage
 
 
 @pytest.fixture
@@ -17,9 +17,9 @@ def driver():
 
 
 @pytest.fixture
-def login_page(driver):
+def registration_page(driver):
     """Tworzy obiekt strony logowania/rejestracji dla testów Selenium."""
-    return LoginPage(driver)
+    return RegistrationPage(driver)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

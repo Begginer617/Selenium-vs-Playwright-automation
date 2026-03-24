@@ -23,7 +23,7 @@ class DriverFactory:
                 # Opcja LOKALNA (Windows)
                 driver = webdriver.Chrome(options=options)
         else:
-            raise Exception(f"Na ten moment wspieramy tylko Chrome!")
+            raise Exception(f"Only chrome supported")
 
         driver.maximize_window()
         return driver
