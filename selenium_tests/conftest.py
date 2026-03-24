@@ -1,4 +1,6 @@
 import pytest
+from pages.selenium.home_page_selenium import HomePage
+from pages.selenium.login_page_selenium import LoginPage
 from utils.driver_factory import DriverFactory
 import allure
 from pages.selenium.registration_page_selenium import RegistrationPage
@@ -23,8 +25,13 @@ def registration_page(driver):
 
 
 @pytest.fixture
+def home_page_selenium(driver):
+    return HomePage(driver)
+
+
+@pytest.fixture
 def login_page(driver):
-    return  login_page(driver)
+    return LoginPage(driver)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
