@@ -1,3 +1,5 @@
+import time
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -6,7 +8,7 @@ import allure
 
 class BasePage:
 
-    def __init__(self, driver, timeout=15):
+    def __init__(self, driver, timeout=5):
         self.driver = driver
         self.wait = WebDriverWait(driver, timeout)
 
@@ -17,6 +19,10 @@ class BasePage:
 
     def wait_for_clickable(self, locator):
         return self.wait.until(EC.element_to_be_clickable(locator))
+
+    def wait_for_url(self, url):
+        # Zmieniamy url_to_be na url_contains
+        return self.wait.until(EC.url_contains(url))
 
     # ---------- ACTIONS ----------
     def click(self, locator):
@@ -44,6 +50,7 @@ class BasePage:
 
     def open(self, url):
         self.driver.get(url)
+        time.sleep(2)
 
     def scroll_to(self, locator):
         element = self.wait_for_visible(locator)

@@ -61,13 +61,6 @@ class RegistrationPage(BasePage):
     LOGIN_BUTTON_REGISTRATION = (By.XPATH, "//a[@href='/kendo-ui/eshop/Account/Login']")
     REGISTER_SUBMIT_BUTTON = (By.XPATH, "//button[@type='submit']")
 
-    # """
-    # Login page locators
-    # """
-    # LOGIN_FIELD = (By.XPATH, "//input[@data-role='textbox' and @id='Email']")
-    # PASSWORD_FIELD = (By.XPATH, "//input[@data-role='textbox' and @type='password']")
-    # LOGIN_BUTTON = (By.XPATH, "//button[@type='submit']")
-
     """
     Methodes
     """
@@ -89,5 +82,3 @@ class RegistrationPage(BasePage):
 
     def open_registration_url(self):
         self.driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
-
-
