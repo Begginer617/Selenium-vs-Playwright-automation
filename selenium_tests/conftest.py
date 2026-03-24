@@ -1,7 +1,7 @@
 import pytest
 from utils.driver_factory import DriverFactory
 import allure
-from pages.selenium.login_page_selenium import LoginPage
+from pages.selenium.registration_page_selenium import LoginPage
 
 
 @pytest.fixture

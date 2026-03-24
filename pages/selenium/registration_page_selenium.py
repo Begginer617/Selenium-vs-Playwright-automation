@@ -4,7 +4,7 @@ from pages.selenium.base_page_selenium import BasePage
 
 class LoginPage(BasePage):
     """
-    Web element locators -  Errors
+    Web element locators - Registration - Errors Registration
     """
 
     # --- BŁĘDY W PODSUMOWANIU
@@ -25,7 +25,7 @@ class LoginPage(BasePage):
                                                      "//a[@data-field='Password' and contains(text(), '8 symbols')]")
 
     """
-    Web element locators - Errors under inputs (Dół)
+    Web element locators - Registration - Errors under inputs (Dół)
     """
     # --- BŁĘDY POD INPUTAMI (Dół) ---
     # Stan: Empty fields
@@ -52,8 +52,15 @@ class LoginPage(BasePage):
     Web element locators - Buttons login page
     """
 
-    LOGIN_BUTTON = (By.XPATH, "//a[@href='/kendo-ui/eshop/Account/Login']")
+    LOGIN_BUTTON_REGISTRATION = (By.XPATH, "//a[@href='/kendo-ui/eshop/Account/Login']")
     REGISTER_SUBMIT_BUTTON = (By.XPATH, "//button[@type='submit']")
+
+    # """
+    # Login page locators
+    # """
+    # LOGIN_FIELD = (By.XPATH, "//input[@data-role='textbox' and @id='Email']")
+    # PASSWORD_FIELD = (By.XPATH, "//input[@data-role='textbox' and @type='password']")
+    # LOGIN_BUTTON = (By.XPATH, "//button[@type='submit']")
 
     """
     Methodes
@@ -73,3 +80,8 @@ class LoginPage(BasePage):
         self.wait_for_visible(self.EMAIL_INPUT).send_keys(incorrect_email)
         self.wait_for_visible(self.PASSWORD_INPUT).send_keys(short_password)
         self.click_register()
+
+    def registration_url(self, driver):
+        self.driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
+
+
