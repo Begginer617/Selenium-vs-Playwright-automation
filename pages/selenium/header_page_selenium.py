@@ -19,6 +19,13 @@ class HeaderSeleniumPage(BasePage):
     def click_cart(self):
         self.click(self.SHOPPING_CART_BTN)
 
+    def open_home_page(self):
+        """Przenosi użytkownika na stronę główną eshopu."""
+        self.driver.get("https://demos.telerik.com/kendo-ui/eshop")
+
+    def get_url(self):
+        return self.driver.current_url
+
     # --- METODY KATEGORII ---
 
     def open_accessories_category(self):
