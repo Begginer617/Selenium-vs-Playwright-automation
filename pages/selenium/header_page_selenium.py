@@ -2,7 +2,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
 
-class HeaderSelenium(BasePage):
+class HeaderSeleniumPage(BasePage):
     # 1. Definiujemy SAME ADRESY (Lokatory). To są krotki (tuples).
     SHOPPING_CART_BTN = (By.XPATH, "//a[contains(@href, 'ShoppingCart')]")
     SHOPPING_CART_COUNT = (By.ID, "shopping-cart-badge")
@@ -22,3 +22,5 @@ class HeaderSelenium(BasePage):
 
     def click_cart(self):
         self.click(self.SHOPPING_CART_BTN)
+
+
