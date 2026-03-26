@@ -12,7 +12,7 @@ TC-02: Product Search and Sorting Accuracy (Wyszukiwanie i sprawdzanie, czy wyni
 
 TC-03: Shopping Cart Value Validation (Logika przeliczania sumy produktów).
 
-TC-04: Header Navigation & Hover Menu Integrity (Czy menu się rozwija i prowadzi gdzie trzeba).
+TC-04: Header Navigation & Hover Menu Integrity, Registration + Login validation (Czy menu się rozwija i prowadzi gdzie trzeba).
 
 TC-05: User Authentication Security (Negative) (Próba logowania na błędne dane).
 

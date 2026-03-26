@@ -63,3 +63,7 @@ class BasePage:
             name=name,
             attachment_type=allure.attachment_type.PNG
         )
+
+    def click_with_js(self, locator):
+        element = self.driver.find_element(*locator)
+        self.driver.execute_script("arguments[0].click();", element)
