@@ -11,26 +11,40 @@ from pages.selenium.registration_page_selenium import RegistrationPage
 
 @pytest.fixture
 def driver():
-    # 1. Konfiguracja opcji (blokada okna haseł)
     options = Options()
+
+    # 1. Całkowite wyłączenie systemów pomocniczych Chrome
+    options.add_argument("--disable-features=PasswordLeakDetection,SafeBrowsing")
+    options.add_argument("--disable-component-update")  # Blokuje aktualizacje modułów bezpieczeństwa
+    options.add_argument("--disable-save-password-bubble")
+    options.add_argument("--disable-notifications")
+    options.page_load_strategy = 'eager'
+
+
+    # 2. Tryb "Guest" lub "Incognito" - to zazwyczaj zabija managera haseł
+    options.add_argument("--guest")
+
+    # 3. Ukrycie automatyzacji
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
+    # 4. Preferencje (agresywne)
     prefs = {
         "credentials_enable_service": False,
-        "profile.password_manager_enabled": False
+        "profile.password_manager_enabled": False,
+        "autofill.profile_enabled": False,
+        "password_manager_leak_detection": False
     }
     options.add_experimental_option("prefs", prefs)
 
-    # 2. Inicjalizacja drivera
     driver = webdriver.Chrome(options=options)
     driver.maximize_window()
 
-    yield driver  # Test ignition
-
-    # 3. Sprzątanie
+    yield driver
     driver.quit()
 
 
 # --- FIXTURY STRON ---
-# Dzięki temu w testach wpisujesz tylko nazwę w nawiasie, np. def test(login_page):
 @pytest.fixture
 def registration_page(driver):
     return RegistrationPage(driver)
