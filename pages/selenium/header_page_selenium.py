@@ -26,6 +26,9 @@ class HeaderSeleniumPage(BasePage):
     def get_url(self):
         return self.driver.current_url
 
+
+
+
     # --- METODY KATEGORII ---
 
     def open_accessories_category(self):
