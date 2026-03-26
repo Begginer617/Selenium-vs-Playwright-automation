@@ -1,3 +1,4 @@
+from selenium.webdriver.common import by
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
@@ -13,6 +14,10 @@ class HeaderSeleniumPage(BasePage):
     BIKES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Bikes']")
     CLOTHES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Clothes']")
     COMPONENTS_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Components']")
+    FAVOURITES_LINK = (By.CSS_SELECTOR, "a[href*='Account/Favorites']")
+    FAVOURITES_BADGE = (By.ID, "favourites-badge")
+    CONTACTS_LINK = (By.XPATH, "//a[@href='/kendo-ui/eshop/Contacts']")
+
 
     # --- METODY PODSTAWOWE ---
 
@@ -42,6 +47,22 @@ class HeaderSeleniumPage(BasePage):
 
     def open_components_category(self):
         self._hover_and_click(self.COMPONENTS_LINK)
+
+    def open_favourites_category(self):
+        self._hover_and_click(self.FAVOURITES_LINK)
+
+    def click_favourites(self):
+        # Twoja metoda click() z BasePage już ma w sobie wait_for_clickable!
+        self.click(self.FAVOURITES_LINK)
+
+    def get_favourites_count(self):
+        # Pobieramy tekst z badge'a (liczbę)
+        count_text = self.get_text(self.FAVOURITES_BADGE)
+        return int(count_text)
+
+    def open_contacts_category(self):
+        self._hover_and_click(self.CONTACTS_LINK)
+
 
     # Wspólna logika dla Hovera
     def _hover_and_click(self, locator):

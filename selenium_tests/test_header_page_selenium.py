@@ -18,17 +18,29 @@ def test_header_page_selenium(home_page_selenium, login_page, header_page_seleni
     # 5. Test Bikes
     header_page_selenium.open_home_page()
     header_page_selenium.open_bikes_category()
-    # POPRAWIONE: Sprawdzamy czy w URL są rowery (Bikes)
+    #Sprawdzamy czy w URL są rowery (Bikes)
     assert "Home/Bikes" in header_page_selenium.get_url()
 
     # 6. Test Clothes
     header_page_selenium.open_home_page()
     header_page_selenium.open_clothes_category()
-    # POPRAWIONE: Sprawdzamy czy w URL są ubrania (Clothing)
+    # Sprawdzamy czy w URL są ubrania (Clothing)
     assert "Home/Clothing" in header_page_selenium.get_url()
 
     # 7. Test Components
     header_page_selenium.open_home_page()
     header_page_selenium.open_components_category()
-    # POPRAWIONE: Sprawdzamy czy w URL są komponenty (Components)
+    # Sprawdzamy czy w URL są komponenty (Components)
     assert "Home/Components" in header_page_selenium.get_url()
+
+
+    # 8. Test Favourites
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_favourites_category()
+    assert "Account/Favorites" in header_page_selenium.get_url()
+
+
+    # 9. Test Contacts
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_contacts_category()
+    assert "eshop/Contacts" in header_page_selenium.get_url()
