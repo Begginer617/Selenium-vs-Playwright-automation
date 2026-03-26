@@ -2,6 +2,8 @@ import pytest
 import allure
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+from pages.selenium.header_page_selenium import HeaderSeleniumPage
 from pages.selenium.home_page_selenium import HomePage
 from pages.selenium.login_page_selenium import LoginPage
 from pages.selenium.registration_page_selenium import RegistrationPage
@@ -42,6 +44,11 @@ def home_page_selenium(driver):
 @pytest.fixture
 def login_page(driver):
     return LoginPage(driver)
+
+
+@pytest.fixture
+def header_page_selenium(driver):
+    return HeaderSeleniumPage(driver)
 
 
 # --- AUTOMATYCZNE SCREENSHOTY W ALLURE ---
