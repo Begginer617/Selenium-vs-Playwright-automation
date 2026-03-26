@@ -44,3 +44,21 @@ def test_header_page_selenium(home_page_selenium, login_page, header_page_seleni
     header_page_selenium.open_home_page()
     header_page_selenium.open_contacts_category()
     assert "eshop/Contacts" in header_page_selenium.get_url()
+
+    # 10. Test About
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_about_page()
+    assert "Home/About" in header_page_selenium.get_url()
+
+    # 11 Test Profile_link
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_profile_link()
+    assert "Account/Profile" in header_page_selenium.get_url()
+    # 12 Test Orders_link
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_orders_link()
+    assert "Account/OrdersPage" in header_page_selenium.get_url()
+    # 13 Test Logout_link
+    header_page_selenium.open_home_page()
+    header_page_selenium.open_logout_link()
+    assert "Account/Login" in header_page_selenium.get_url()

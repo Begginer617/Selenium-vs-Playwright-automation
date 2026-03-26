@@ -2,7 +2,6 @@ import pytest
 import allure
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-
 from pages.selenium.header_page_selenium import HeaderSeleniumPage
 from pages.selenium.home_page_selenium import HomePage
 from pages.selenium.login_page_selenium import LoginPage

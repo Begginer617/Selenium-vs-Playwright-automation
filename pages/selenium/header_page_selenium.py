@@ -1,4 +1,3 @@
-from selenium.webdriver.common import by
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
@@ -8,6 +7,10 @@ class HeaderSeleniumPage(BasePage):
     # --- LOKATORY ---
     SHOPPING_CART_BTN = (By.XPATH, "//a[contains(@href, 'ShoppingCart')]")
     CATEGORIES_MENU = (By.XPATH, "//span[normalize-space()='Categories']")
+    PROFILE_LINK = (By.XPATH, "//li[contains(@class, 'k-menu-item')]//a[text()='Profile']")
+    ORDERS_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='Orders']")
+    LOGOUT_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='Logout']")
+
 
     # Lokatory kategorii
     ACCESSORIES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Accessories']")
@@ -17,6 +20,7 @@ class HeaderSeleniumPage(BasePage):
     FAVOURITES_LINK = (By.CSS_SELECTOR, "a[href*='Account/Favorites']")
     FAVOURITES_BADGE = (By.ID, "favourites-badge")
     CONTACTS_LINK = (By.XPATH, "//a[@href='/kendo-ui/eshop/Contacts']")
+    ABOUT_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='About']")
 
 
     # --- METODY PODSTAWOWE ---
@@ -63,6 +67,17 @@ class HeaderSeleniumPage(BasePage):
     def open_contacts_category(self):
         self._hover_and_click(self.CONTACTS_LINK)
 
+    def open_profile_link(self):
+        self._hover_and_click(self.PROFILE_LINK)
+
+    def open_orders_link(self):
+        self._hover_and_click(self.ORDERS_LINK)
+
+    def open_logout_link(self):
+        self._hover_and_click(self.LOGOUT_LINK)
+
+    def open_about_page(self):
+        self._hover_and_click(self.ABOUT_LINK)
 
     # Wspólna logika dla Hovera
     def _hover_and_click(self, locator):
