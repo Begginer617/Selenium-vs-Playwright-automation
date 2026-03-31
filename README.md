@@ -18,7 +18,6 @@ The environment is orchestrated via **Docker Compose** and includes:
 * `/selenium_tests` – Selenium tests (integrated with `conftest.py`).
 * `/playwright_tests` – Playwright tests.
 * `/pages` – Page Object Model (POM) implementation.
-
 ---
 
 ## 🐳 Environment Management (Docker)
@@ -45,13 +44,13 @@ The conftest.py file allows you to toggle between local and remote execution usi
 
 Run on Docker (Remote Mode):
 # Execute from the project root directory
-python -m pytest --remote true -v
-
+python -m pytest selenium_tests --remote true -v
 
 # Execute from the project root directory (local)
-python -m pytest --remote false -v
+python -m pytest selenium_tests --remote false -v
 
 
+FOR Playwright ( in progress, not finished)
 docker exec -it playwright bash
 pytest .
 
