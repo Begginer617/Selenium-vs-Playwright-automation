@@ -1,212 +1,95 @@
    ## Selenium-vs-Playwright-automation
    
    ## README — Docker Selenium vs. Playwright – Automation – A Final Project for a Postgraduate Studies in Test Automation
-   
-   🚀 Overview
-   Project Architecture
-   The environment is orchestrated via Docker Compose and includes:
-   Selenium Grid 4 (Hub + Chrome Node)
-   Playwright (Python environment)
-   Allure Docker Service (Report generation + Web UI)
-   NoVNC (Real-time browser preview)
-   
-   🧱 Project Structure
-   /docker
-      docker-compose.yml
-   /playwright_tests
-   /selenium_tests
 
-   FOR 💻 Local Development (Windows / PyCharm)
-   1. Installatiion
+---
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🧱 Project Architecture
+The environment is orchestrated via **Docker Compose** and includes:
+* **Selenium Grid 4** (Hub + Chrome Node) – for Selenium execution.
+* **Playwright** (Python Container) – isolated environment for Playwright tests.
+* **noVNC** (Port 7900) – real-time browser preview **(No password required)**.
+* **Allure Docker Service** – automatic report generation + Web UI.
 
-   2. To run tests from your local machine against the Docker Selenium Grid:
-  
-   ```bash
-   python -m pytest selenium_tests/ --alluredir=reports/allure-results
-   ```
+---
 
-   3. Allure report visualization
+## 📁 Project Structure
+* `/docker` – infrastructure configuration (`docker-compose.yml`).
+* `/selenium_tests` – Selenium tests (integrated with `conftest.py`).
+* `/playwright_tests` – Playwright tests.
+* `/pages` – Page Object Model (POM) implementation.
+---
 
-   Live Server:
-   ```bash
-   allure serve reports/allure-results
-   ```
+## 🐳 Environment Management (Docker)
 
-   Static Report Generation:
+### How to Start the Environment:
+From the project root directory, run:
+powershell
+cd docker
+docker-compose up -d
 
-   ```bash
-   allure generate reports/allure-results -o reports/allure-report --clean
-   ```
+Checking Status:
+docker ps
 
-   5. Downloading Allure report 
+Service URLs:
+Service	         URL	                  Description
+Selenium Grid UI	http://localhost:4444	Monitor Grid nodes and sessions
+VNC Live Preview	http://localhost:7900	Watch tests in real-time (No password)
+Allure Report UI	http://localhost:5252	View automated test reports
 
-   ```bash
-   allure generate reports/allure-results -o reports/allure-report --clean
-   ```
+🧪 Running Tests
+1. Selenium Tests (Hybrid Mode)
+The conftest.py file allows you to toggle between local and remote execution using the custom --remote flag.
 
-   Important info:
-   This will create an `allure-report` folder containing a ready-to-use `index.html` file. 
-   Note: Due to browser security restrictions, you cannot simply double-click to open it (it will be empty). 
-   It must be served by a server (such as your Docker Allure UI running on localhost:5252).
 
-   
-   ## FOR DOCKER
+Run on Docker (Remote Mode):
+# Execute from the project root directory
+python -m pytest selenium_tests --remote true -v
 
-   Checking status of docker:
+# Execute from the project root directory (local)
+python -m pytest selenium_tests --remote false -v
 
-   ```bash
-   docker ps
-   ```
 
-   IF not running DO steps below:
-   
-   🐳 How to Start the Environment
-   From the project root directory, run:
-   ```bash
-   docker compose up -d
-   ```
-   
-   This will:
-   - pull all required images (first run only),
-   - start all containers in the background.
+FOR Playwright ( in progress, not finished)
+docker exec -it playwright bash
+pytest .
 
-   ```bash
-   Service	         URL	                  Description
-   Selenium Grid UI	http://localhost:4444	Manage and monitor Grid nodes
-   VNC Live Preview	http://localhost:7900	Watch tests running in real-time (No password)
-   Allure Report UI	http://localhost:5252	View automated test reports   
-   ```
-   ## 🔍 How to Check if Everything Is Running
-   
-  ```bash
-   docker ps
-   ```
-   
-   You should see containers:
-   - selenium-hub
-   - chrome
-   - playwright
-   - allure-generator
-   - allure-ui
-   All with status Up.
-   
-   🌐 Service URLs
-   
-   ✔ Selenium Grid UI
-   
-   ```bash
-   http://localhost:4444
-   ```
+📊 Allure Reporting
+The system automatically watches the results directory and updates the report.
 
-   ✔ Allure Report UI
+Live Report (UI): http://localhost:5252
 
-   ```bash
-   http://localhost:5252
-   ```
-   
-   🧪 Running Tests
-   ▶ Playwright tests (inside container)
-   
-   ```bash
-   docker exec -it playwright bash
-   pytest .
-   ```
-   
-   
-   ▶ Selenium tests (local or container)
-   Use the remote WebDriver URL:
+Local Visualization (Optional):
+allure serve reports/allure-results
 
-   ```bash
-   http://selenium-hub:4444/wd/hub
-   ```
-   
-   
-   Example:
-   ```bash
-   webdriver.Remote(
-       command_executor="http://selenium-hub:4444/wd/hub",
-       options=ChromeOptions()
-   )
-   ```
-   
-   
-   📊 Generating Allure Reports
-   Allure Docker Service automatically watches the results directory.
-   To trigger report generation manually:
-   
-   ```bash
-   curl -X POST http://localhost:5252/generate-report
-   ```
-   
-   🛑 Stopping the Environment
-   
-   ```bash
-   docker compose down
-   ```
-   
-   To remove volumes as well:
-   
-   ```bash
-   docker compose down -v
-   ```
-   
-   🔄 Restarting
-   
-   ```bash
-   docker compose restart
-   ```
-   
-   🧹 Cleaning Up Docker (optional)
 
-   ```bash
-   docker system prune -a
-   ```
-  
-   ENV
-   CREDENTIALS:
-   
-   Email:
-   ```bash
-   jaxons.danniels@company.com
-   ```
-   Password: 
-   ```bash
-   User1234
-   ```
-   
-   
+
+🛑 Stopping the Environment
+cd docker
+docker-compose down
+
+
+🔐 Test Credentials
+Email: jaxons.danniels@company.com
+
+Password: User1234
+
+
 ## Architecture
 
  ```bash
-       +-------------------------------------------------------+
-       |                  DOCKER NETWORK                       |
-       |          (Managed by docker-compose.yml)              |
-       +-------+--------------------------+-------------+------+
-               |                          |             |
+      +-------------------------------------------------------+
+      |                  DOCKER NETWORK                       |
+      |          (Managed by docker-compose.yml)              |
+      +-------+--------------------------+-------------+------+
+              |                          |             |
 +--------------v--------------+  +--------v--------+  +-v-----------+
-|    SELENIUM STANDALONE      |  |   PLAYWRIGHT    |  |   ALLURE    |
-|   (Chrome + Selenium 4)     |  |   CONTAINER     |  |   SERVICE   |
+|    SELENIUM GRID            |  |   PLAYWRIGHT    |  |   ALLURE    |
+| (Hub:4444 + Chrome Node)    |  |   CONTAINER     |  |   SERVICE   |
 +-----------------------------+  +-----------------+  +-------------+
-| Hub Port: 4444              |  | Python 3.14     |  | API: 5050   |
-| VNC Port: 7900 (No Login)   |  | Pytest          |  | UI: 5252    |
+| VNC Port: 7900 (No Login)   |  | Python 3.14     |  | API: 5050   |
+| Hub Port: 4444              |  | Pytest          |  | UI: 5252    |
 +--------------+--------------+  +--------+--------+  +------+------+
-               |                          |                  |
-               |                          |                  |
-               +----------+---------------+------------------+
-                          |
-               +----------v----------+
-               |    ALLURE RESULTS   |
-               |  (Shared Directory) |
-               +---------------------+
-+--------------------------------------------------------------+
-|                            Docker                            |
-|                     docker-compose.yml                       |
-|                in control of whole envoriment                   |
-+--------------------------------------------------------------+]
    ```
 
 
