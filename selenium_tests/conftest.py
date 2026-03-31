@@ -17,6 +17,7 @@ class DriverFactory:
     def get_driver(run_remote, options):
         if run_remote:
             # Ustawienia dla DOCKERA
+            # Używamy nazwy serwisu z docker-compose lub localhost, jeśli puszczasz z Windowsa do Dockera
             executor_url = "http://localhost:4444/wd/hub"
             driver = webdriver.Remote(
                 command_executor=executor_url,
@@ -42,7 +43,7 @@ def driver(request):
     # 1. Pobranie opcji z terminala
     remote_opt = request.config.getoption("--remote").lower() == "true"
 
-    # 2. Konfiguracja zaawansowanych opcji Chrome (Twoje ustawienia)
+    # 2. Konfiguracja zaawansowanych opcji Chrome
     options = Options()
 
     # Blokowanie popupów i managera haseł

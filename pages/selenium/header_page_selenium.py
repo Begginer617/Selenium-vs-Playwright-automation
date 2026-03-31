@@ -7,12 +7,21 @@ class HeaderSeleniumPage(BasePage):
     # --- LOKATORY ---
     SHOPPING_CART_BTN = (By.XPATH, "//a[contains(@href, 'ShoppingCart')]")
     CATEGORIES_MENU = (By.XPATH, "//span[normalize-space()='Categories']")
+    PROFILE_LINK = (By.XPATH, "//li[contains(@class, 'k-menu-item')]//a[text()='Profile']")
+    ORDERS_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='Orders']")
+    LOGOUT_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='Logout']")
+
 
     # Lokatory kategorii
     ACCESSORIES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Accessories']")
     BIKES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Bikes']")
     CLOTHES_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Clothes']")
     COMPONENTS_LINK = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Components']")
+    FAVOURITES_LINK = (By.CSS_SELECTOR, "a[href*='Account/Favorites']")
+    FAVOURITES_BADGE = (By.ID, "favourites-badge")
+    CONTACTS_LINK = (By.XPATH, "//a[@href='/kendo-ui/eshop/Contacts']")
+    ABOUT_LINK = (By.XPATH, "//a[@class='k-link k-menu-link' and text()='About']")
+
 
     # --- METODY PODSTAWOWE ---
 
@@ -42,6 +51,33 @@ class HeaderSeleniumPage(BasePage):
 
     def open_components_category(self):
         self._hover_and_click(self.COMPONENTS_LINK)
+
+    def open_favourites_category(self):
+        self._hover_and_click(self.FAVOURITES_LINK)
+
+    def click_favourites(self):
+        # Twoja metoda click() z BasePage już ma w sobie wait_for_clickable!
+        self.click(self.FAVOURITES_LINK)
+
+    def get_favourites_count(self):
+        # Pobieramy tekst z badge'a (liczbę)
+        count_text = self.get_text(self.FAVOURITES_BADGE)
+        return int(count_text)
+
+    def open_contacts_category(self):
+        self._hover_and_click(self.CONTACTS_LINK)
+
+    def open_profile_link(self):
+        self._hover_and_click(self.PROFILE_LINK)
+
+    def open_orders_link(self):
+        self._hover_and_click(self.ORDERS_LINK)
+
+    def open_logout_link(self):
+        self._hover_and_click(self.LOGOUT_LINK)
+
+    def open_about_page(self):
+        self._hover_and_click(self.ABOUT_LINK)
 
     # Wspólna logika dla Hovera
     def _hover_and_click(self, locator):
