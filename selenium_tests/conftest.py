@@ -1,6 +1,5 @@
 import pytest
 import allure
-import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
