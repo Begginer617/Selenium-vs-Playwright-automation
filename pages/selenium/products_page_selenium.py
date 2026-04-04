@@ -4,109 +4,136 @@ from pages.selenium.base_page_selenium import BasePage
 
 
 class ProductsPage(BasePage):
-
-    '''LINK DO STRONY GŁOWNEJ BIKE'''
+    """KONSTANTY I LINKI"""
     BIKE_MAIN_LINK = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
 
-    '''LOKATORY DO TYPOW ROWEROW'''
+    """# --- LOKATORY: KATEGORIE ---"""
     BIKE_CATEGORY_TITLES = (By.XPATH, "//div[@class='category-heading']")
     MOUNTAINS_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Mountain Bikes')]")
     ROAD_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Road Bikes')]")
     TOURING_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Touring Bikes')]")
 
-    def get_bike_category_titles(self):
-        elements = self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES)
-        return [el.text.strip() for el in elements]
+    """# --- LOKATORY: FILTRY ---"""
+    # Radio Buttony (do sprawdzania stanu)
+    DISCOUNTED_BIKES_RADIO_BUTTON = (By.XPATH, "//input[@type='radio' and @value='2']")
+    ALL_BIKES_RADIO_BUTTON = (By.XPATH, "//input[@name='discountPicker' and @value='1']")
 
-    def open_mountain_bikes(self):
-        self.click(self.MOUNTAINS_BIKES_CATEGORY)
-        time.sleep(1)  # Chwila na załadowanie produktów
+    """# Etykiety (do klikania)"""
+    DISCOUNTED_BIKES_FILTER = (By.XPATH, "//label[contains(text(), 'Discounted items only')]")
+    ALL_BIKES_FILTER = (By.XPATH, "//label[contains(text(), 'All')]")
 
-    def open_road_bikes(self):
-        self.click(self.ROAD_BIKES_CATEGORY)
-        time.sleep(1)  # Chwila na załadowanie produktów
+    """# Elementy na karcie produktu"""
+    DISCOUNT_PERCENT_BADGE = (By.XPATH, "//span[@class='discount-pct']")
+    PRODUCT_CARD = (By.XPATH, "//div[@class='k-card']")
+    PAGER_INFO = (By.XPATH, "//span[@class='k-pager-info']")
 
-    def open_touring_bikes(self):
-        self.click(self.TOURING_BIKES_CATEGORY)
-        time.sleep(1) # Chwila na załadowanie produktów
-
-    def open_bikes_main_link(self):
-        # najpierw otwórz stronę główną sklepu
-        self.open("https://demos.telerik.com/kendo-ui/eshop")
-        time.sleep(1)
-
-        # dopiero potem przejdź do Bikes
-        self.open(self.BIKE_MAIN_LINK)
-        time.sleep(1)
-
-    # --- LOKATORY (Adresy elementów na stronie) ---
+    """# --- LOKATORY: SORTOWANIE ---"""
     SORT_DROPDOWN_TRIGGER = (By.XPATH, "//span[contains(@class, 'k-input-value-text')]")
-
-    # Opcje wewnątrz dropdowna (tekst musi być identyczny jak na stronie!)
     SORT_FILTER_LOW_TO_HIGH = (By.XPATH, "//span[@class='k-list-item-text' and text()='Price - Low to High']")
     SORT_FILTER_HIGH_TO_LOW = (By.XPATH, "//span[@class='k-list-item-text' and text()='Price - High to Low']")
     SORT_FILTER_A_TO_Z = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - A to Z']")
     SORT_FILTER_Z_TO_A = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - Z to A']")
 
-    # --- METODY DO POBIERANIA DANYCH (Twoi "Tłumacze") ---
+    """# --- METODY: NAWIGACJA ---"""
+
+    def open_bikes_main_link(self):
+        """Otwiera stronę główną rowerów"""
+        self.open("https://demos.telerik.com/kendo-ui/eshop")
+        time.sleep(1)
+        self.open(self.BIKE_MAIN_LINK)
+        time.sleep(1)
+
+    def open_mountain_bikes(self):
+        """Wchodzi w kategorię Mountain Bikes"""
+        self.click(self.MOUNTAINS_BIKES_CATEGORY)
+        time.sleep(2)
+
+    """# --- METODY: POBIERANIE DANYCH (GETTERS) ---"""
 
     def get_all_prices(self):
-        """Wyciąga ceny z <div class='card-price'> i zamienia na liczby"""
-        # Używamy Twojego lokatora!
+        """Pobiera wszystkie ceny i zamienia na float"""
         PRICE_LOCATOR = (By.XPATH, "//div[@class='card-price']")
-
         elements = self.driver.find_elements(*PRICE_LOCATOR)
         prices = []
         for el in elements:
-            # Czyścimy tekst "$3,399.99" -> "3399.99"
             clean_text = el.text.replace('$', '').replace(',', '').strip()
             if clean_text:
                 prices.append(float(clean_text))
         return prices
 
     def get_all_names(self):
-        """Wyciąga nazwy z <div class='k-card-title'>"""
-        # Używamy Twojego lokatora!
+        """Pobiera wszystkie nazwy produktów"""
         NAME_LOCATOR = (By.XPATH, "//div[@class='k-card-title']")
-
         elements = self.driver.find_elements(*NAME_LOCATOR)
         return [el.text.strip() for el in elements if el.text]
 
-    # --- GŁÓWNA METODA TESTOWA ---
+    def get_all_discount_labels(self):
+        """Pobiera teksty z plakietek rabatowych (np. '20% off')"""
+        elements = self.driver.find_elements(*self.DISCOUNT_PERCENT_BADGE)
+        return [el.text.strip() for el in elements if el.text]
+
+    def get_total_count_from_pager(self):
+        """Wyciąga łączną liczbę przedmiotów z pagera (np. 32)"""
+        text_info = self.driver.find_element(*self.PAGER_INFO).text
+        # Split: ['1', '-', '12', 'of', '32', 'items'] -> bierzemy index 4
+        parts = text_info.split()
+        return int(parts[4])
+
+    """# --- METODY: LICZENIE (COUNTERS) ---"""
+
+    def count_visible_bikes(self):
+        """Zlicza fizycznie wyświetlone kafelki produktów"""
+        elements = self.driver.find_elements(*self.PRODUCT_CARD)
+        return len(elements)
+
+    def count_badges(self):
+        """Zlicza plakietki procentowe widoczne na ekranie"""
+        return len(self.get_all_discount_labels())
+
+    """# --- METODY: TESTOWE (AKCJE I WERYFIKACJA) ---"""
+
+    def verify_discount_filter(self):
+        """KLUCZOWY TEST: Sprawdza czy filtr rabatów działa uczciwie"""
+        print("Aktywuję filtr: Discounted items only...")
+        self.click(self.DISCOUNTED_BIKES_FILTER)
+        time.sleep(2)  # Czekamy na przeładowanie listy
+
+        bikes_count = self.count_visible_bikes()
+        badges_count = self.count_badges()
+
+        print(f"DEBUG: Znaleziono {bikes_count} produktów i {badges_count} plakietek.")
+
+        assert bikes_count > 0, "BŁĄD: Filtr nie zwrócił żadnych wyników!"
+        assert bikes_count == badges_count, (
+            f"BŁĄD FILTRA! Wyświetlono {bikes_count} produktów, "
+            f"ale tylko {badges_count} ma plakietkę rabatu."
+        )
+        print("✅ SUKCES: Wszystkie widoczne produkty posiadają rabat.")
 
     def all_sorting_options(self):
-        """Pętla, która klika i sprawdza czy Python widzi to samo co strona"""
-
-        sorting_scenarios = [
+        """Testuje po kolei wszystkie opcje sortowania"""
+        scenarios = [
             (self.SORT_FILTER_A_TO_Z, "name_asc"),
             (self.SORT_FILTER_Z_TO_A, "name_desc"),
             (self.SORT_FILTER_LOW_TO_HIGH, "price_asc"),
             (self.SORT_FILTER_HIGH_TO_LOW, "price_desc")
         ]
 
-        for sorting_option_locator, sort_type in sorting_scenarios:
-            # 1. Kliknij dropdown
+        for locator, sort_type in scenarios:
             self.click(self.SORT_DROPDOWN_TRIGGER)
             time.sleep(0.5)
 
-            # 2. Pobierz nazwę przycisku, żeby wiedzieć co testujemy
-            option_name = self.driver.find_element(*sorting_option_locator).text
+            option_name = self.driver.find_element(*locator).text
+            self.click(locator)
+            time.sleep(2)
 
-            # 3. Kliknij w opcję i poczekaj na przeładowanie
-            self.click(sorting_option_locator)
-            time.sleep(2.0)
-
-            # 4. Sprawdzanie (Asercja)
             if "Price" in option_name:
                 actual = self.get_all_prices()
                 is_desc = (sort_type == "price_desc")
-                expected = sorted(actual, reverse=is_desc)
-                assert actual == expected, f"Błąd! Ceny nie są OK dla: {option_name}"
-
+                assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania cen: {option_name}"
             elif "Name" in option_name:
                 actual = self.get_all_names()
                 is_desc = (sort_type == "name_desc")
-                expected = sorted(actual, reverse=is_desc)
-                assert actual == expected, f"Błąd! Nazwy nie są OK dla: {option_name}"
+                assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania nazw: {option_name}"
 
-            print(f"✅ Sukces: {option_name} działa poprawnie!")
+            print(f"✅ Sukces: Sortowanie '{option_name}' działa poprawnie!")

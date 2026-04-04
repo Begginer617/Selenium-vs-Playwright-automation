@@ -2,10 +2,43 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 
 def test_search_product_exists(home_page_selenium, login_page_selenium, product_page_selenium):
+    # 1. Logowanie
     home_page_selenium.open_login_page()
     login_page_selenium.login_as_admin()
 
+    # 2. Nawigacja do rowerów górskich
     product_page_selenium.open_bikes_main_link()
+    product_page_selenium.open_mountain_bikes()
+
+    # 3. Upewnij się, że zaznaczony jest filtr "All"
+    # Używamy metody click z BasePage, podając jej lokator
+    product_page_selenium.click(product_page_selenium.ALL_BIKES_FILTER)
+    product_page_selenium.wait_for_page_load(2)
+
+    # 4. Pobierz faktyczną liczbę z pagera
+    actual_count = product_page_selenium.get_total_count_from_pager()
+
+    # 5. Asercja i raportowanie
+    expected_count = 32
+
+    if actual_count != expected_count:
+        print(f" Incorrect number of products found: {actual_count}")
+    else:
+        print(f" Correct number of products found: {actual_count}")
+
+    assert actual_count == expected_count, f"Expected {expected_count} bikes, but found {actual_count}"
+
+
+    #6.kliknij button discounted o sprawdź ile jest produktów
+
+
+
+
+
+    #7.
+    #8. sprawdz czy wsztkie maja labele z obizka ceny
+    #9. wejdz na jedn z produktow i sprawdz czy w adresie url product id zgadza sie z tym co jest na stronie wystetlone ( nie wiem czy taki test ma sens)
+
 
     titles = product_page_selenium.get_bike_category_titles()
 
@@ -21,10 +54,6 @@ def test_search_product_exists(home_page_selenium, login_page_selenium, product_
     assert "Mountain Bikes" in titles
     assert "Road Bikes" in titles
     assert "Touring Bikes" in titles
-
-
-
-
 
 
 
