@@ -1,5 +1,5 @@
-import pytest
 import allure
+import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -8,6 +8,8 @@ from pages.selenium.header_page_selenium import HeaderSeleniumPage
 from pages.selenium.home_page_selenium import HomePage
 from pages.selenium.login_page_selenium import LoginPage
 from pages.selenium.registration_page_selenium import RegistrationPage
+from pages.selenium.products_page_selenium import ProductsPage
+
 
 
 # --- ZINTEGROWANA FABRYKA DRIVERA ---
@@ -74,7 +76,7 @@ def driver(request):
 
 # --- FIXTURY STRON (Page Objects) ---
 @pytest.fixture
-def registration_page(driver):
+def registration_page_selenium(driver):
     return RegistrationPage(driver)
 
 
@@ -84,13 +86,19 @@ def home_page_selenium(driver):
 
 
 @pytest.fixture
-def login_page(driver):
+def login_page_selenium(driver):
     return LoginPage(driver)
 
 
 @pytest.fixture
 def header_page_selenium(driver):
     return HeaderSeleniumPage(driver)
+
+@pytest.fixture
+def product_page_selenium(driver):
+    return ProductsPage(driver)
+
+
 
 
 # --- AUTOMATYCZNE SCREENSHOTY DLA ALLURE W RAZIE BŁĘDU ---
