@@ -1,5 +1,4 @@
 import time
-
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -23,6 +22,10 @@ class BasePage:
     def wait_for_url(self, url):
         # Zmieniamy url_to_be na url_contains
         return self.wait.until(EC.url_contains(url))
+
+    def wait_for_all_visible(self, locator):
+        return self.wait.until(EC.visibility_of_all_elements_located(locator))
+
 
     # ---------- ACTIONS ----------
     def click(self, locator):
