@@ -24,12 +24,13 @@ The environment is orchestrated via **Docker Compose** and includes:
 
 ### How to Start the Environment:
 From the project root directory, run:
-powershell
-cd docker
-docker-compose up -d
-
 Checking Status:
 docker ps
+
+->powershell
+->cd docker
+->docker-compose up -d 
+
 
 Service URLs:
 Service	         URL	                  Description
@@ -41,13 +42,33 @@ Allure Report UI	http://localhost:5252	View automated test reports
 1. Selenium Tests (Hybrid Mode)
 The conftest.py file allows you to toggle between local and remote execution using the custom --remote flag.
 
+--remote true   → run tests inside Docker (Selenium Grid)
+--remote false  → run tests locally on your machine
 
-Run on Docker (Remote Mode):
+
+🐳 Run Selenium tests in Docker (REMOTE mode)
+(recommended for CI / reproducible environment)
+
 # Execute from the project root directory
 python -m pytest selenium_tests --remote true -v
+➡️ Tests run inside Docker
+➡️ Results are automatically collected by Allure Docker Service
+➡️ Report available at:
+http://localhost:5252
+
+
+💻 Run Selenium tests locally (LOCAL mode)
+(useful for debugging without Docker)
 
 # Execute from the project root directory (local)
-python -m pytest selenium_tests --remote false -v
+pytest selenium_tests --remote false -v --alluredir=reports/allure-results
+
+Then generate a local report (optional):
+allure serve reports/allure-results
+
+⚠️ Important:
+Local Allure CLI works only with results generated locally.
+Remote (Docker) results are handled by Allure Docker Service.
 
 
 FOR Playwright ( in progress, not finished)
@@ -55,11 +76,17 @@ docker exec -it playwright bash
 pytest .
 
 📊 Allure Reporting
-The system automatically watches the results directory and updates the report.
+Automatic reporting (Docker mode)
+When running tests with --remote true, results are sent to:
+allure-docker-service
 
-Live Report (UI): http://localhost:5252
+Live report UI:
+👉 http://localhost:5252
+No manual steps required.
 
-Local Visualization (Optional):
+
+Local reporting (optional)
+Only for tests run with --remote false:
 allure serve reports/allure-results
 
 
@@ -91,6 +118,168 @@ Password: User1234
 | Hub Port: 4444              |  | Pytest          |  | UI: 5252    |
 +--------------+--------------+  +--------+--------+  +------+------+
    ```
+
+🛠️ Troubleshooting Guide
+This section covers the most common issues you may encounter when running the environment, executing tests, or generating reports.
+
+❌ 1. allure: command not found
+Cause
+Allure CLI is not available in your system PATH, or the terminal was opened before installation.
+Fix
+- Close all terminals.
+- Open a new PowerShell window.
+- Verify installation:
+allure --version
+
+If it still fails:
+- Check if Scoop installed Allure:
+scoop list
+- Add Allure manually to PATH:
+C:\Users\<USER>\scoop\apps\allure\current\bin
+
+❌ 2. JAVA_HOME is not set
+
+Of course — here is the full Troubleshooting section rewritten in clean, professional English, ready to paste directly into your README.
+I kept it crisp, practical, and developer‑friendly so it fits perfectly with the rest of your documentation.
+
+🛠️ Troubleshooting Guide
+This section covers the most common issues you may encounter when running the environment, executing tests, or generating reports.
+
+❌ 1. allure: command not found
+Cause
+Allure CLI is not available in your system PATH, or the terminal was opened before installation.
+Fix
+1. Close all terminals.
+2. Open a new PowerShell window.
+3. Verify installation:
+allure --version
+
+
+If it still fails:
+1. Check if Scoop installed Allure:
+scoop list
+2. Add Allure manually to PATH:
+C:\Users\<USER>\scoop\apps\allure\current\bin
+
+
+
+❌ 2. JAVA_HOME is not set
+Cause
+Allure CLI requires Java, but your system cannot locate a JDK installation.
+Fix
+1. Install Temurin JDK (17 or 21 recommended):
+https://adoptium.net
+- Set the environment variable:
+2. 	Set the environment variable:
+JAVA_HOME = C:\Program Files\Eclipse Adoptium\jdk-XX
+3. Add to PATH:
+%JAVA_HOME%\bin
+4. Verify:
+->powershell
+java -version
+echo $env:JAVA_HOME
+
+❌ 3. Allure report is empty
+Cause
+You ran tests in remote mode, so results were generated inside Docker, not locally.
+Fix
+For local Allure CLI:
+1. Run tests locally:
+pytest selenium_tests --remote false -v --alluredir=reports/allure-results
+2. Then:
+allure serve reports/allure-results
+
+For Docker Allure Service:
+Open:
+👉 http://localhost:5252
+
+❌ 4. Allure Docker Service shows no results
+
+Cause
+The container cannot access the results directory, or tests are writing to the wrong path.
+Fix
+1. Ensure your docker-compose.yml includes:
+- ./reports:/app/reports
+2. And tests in remote mode write to:
+/app/reports/allure-results
+
+
+❌ 5. Selenium Grid does not start / Chrome Node cannot connect
+Cause
+Port conflicts, stale containers, or network issues.
+Fix
+1. Stop the environment:
+docker-compose down
+2. Clean unused containers:
+docker system prune -f
+3. Restart:
+docker-compose up -d
+
+
+❌ 6. VNC (port 7900) not accessible
+Cause
+Port 7900 is already in use or the Selenium container failed to start.
+Fix
+1. Check running containers:
+docker ps
+2. Check port usage:
+netstat -ano | findstr 7900
+3. If needed, change the port in docker-compose.yml:
+- "7901:7900"
+
+❌ 7. Playwright error: Failed to launch browser
+Cause
+Playwright browsers are not installed inside the container.
+Fix
+1. Inside the Playwright container:
+playwright install
+
+
+❌ 8. Selenium tests fail locally
+Cause
+The --remote true flag forces Docker execution.
+Fix
+1. Run tests locally:
+pytest selenium_tests --remote false -v
+
+❌ 9. Docker error: port is already allocated
+Cause
+Another process is using the same port (e.g., 4444 or 5252).
+Fix
+1. Find the process:
+netstat -ano | findstr 4444
+2. Terminate it:
+taskkill /PID <PID> /F
+
+❌ 10. Allure Docker Service UI loads, but report is empty
+Cause
+The results directory is empty.
+Fix
+1. Check:
+ls reports/allure-results
+
+
+If empty → tests did not generate results.
+1. Verify your pytest command includes:
+--alluredir=/app/reports/allure-results
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
