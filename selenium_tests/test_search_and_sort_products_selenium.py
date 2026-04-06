@@ -30,6 +30,7 @@ def test_search_product_exists(home_page_selenium, login_page_selenium, product_
 
 
     #6.kliknij button discounted o sprawdź ile jest produktów
+    product_page_selenium.click(product_page_selenium.)
 
 
 
