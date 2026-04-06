@@ -1,3 +1,4 @@
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
 from selenium.webdriver.common.keys import Keys
@@ -29,7 +30,7 @@ class LoginPage(BasePage):
         password_element = self.driver.find_element(*self.PASSWORD_FIELD)
         password_element.send_keys(Keys.ENTER)
 
-        # 3. FIX na uparty popup Chrome:
+        # 3. FIX na popup Chrome:
         # Dajemy mu pół sekundy na wyskoczenie i "bijemy" w ESCAPE
         time.sleep(0.5)
         try:
@@ -39,5 +40,9 @@ class LoginPage(BasePage):
             self.driver.find_element(By.TAG_NAME, "body").click()
         except:
             pass # Jeśli popupu nie było, po prostu jedziemy dalej
+
+        #4. Wejście na stronę główną sklepu - home page
+            self.open("https://demos.telerik.com/kendo-ui/eshop")
+
 
 

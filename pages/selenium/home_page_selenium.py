@@ -6,6 +6,7 @@ class HomePage(BasePage):
     HOME_PAGE_URL = "https://demos.telerik.com/kendo-ui/eshop"
     REGISTRATION_PAGE_URL = "https://demos.telerik.com/kendo-ui/eshop/Account/Register"
     LOGIN_PAGE_URL = "https://demos.telerik.com/kendo-ui/eshop/Account/Login"
+    CATEGORY_BIKES_URL = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
 
     # --- LOKATORY ---
     LOGOUT_BUTTON = (By.XPATH, "//a[contains(text(), 'Logout')]")
