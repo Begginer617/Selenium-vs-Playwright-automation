@@ -34,6 +34,87 @@ class ProductsPage(BasePage):
     SORT_FILTER_A_TO_Z = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - A to Z']")
     SORT_FILTER_Z_TO_A = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - Z to A']")
 
+    """# --- LOKATORY: KOSZYK ---"""
+    # Przycisk "Add to Cart" na karcie produktu (pierwszy z brzegu)
+    ADD_TO_CART_BUTTON = (By.XPATH, "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])[1]")
+
+    # Ikona koszyka/przycisk przejścia do koszyka
+    CART_ICON = (By.XPATH, "//a[contains(@href, 'Cart')]")
+
+    # Elementy wewnątrz koszyka
+    CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
+
+    # Przycisk usuwania w koszyku (wszystkie widoczne)
+    REMOVE_ITEM_BUTTONS = (By.XPATH, "//p[text()='Remove']")
+    # Tekst informujący o pustym koszyku (opcjonalnie)
+    EMPTY_CART_MESSAGE = (By.XPATH, "//div[contains(text(), 'Your cart is empty')]")
+
+    """# --- Metody: KOSZYK ---"""
+
+    def add_first_product_to_cart_and_verify(self):
+        """Dodaje pierwszy produkt do koszyka i sprawdza czy tam jest"""
+        # 1. Pobierz nazwę pierwszego produktu
+        product_name = self.get_all_names()[0]
+        print(f"Próbuję dodać: {product_name}")
+
+        # 2. Kliknij Add to Cart
+        self.click(self.ADD_TO_CART_BUTTON)
+        time.sleep(2)  # Kendo potrzebuje chwili na animację "fly-to-cart"
+
+        # 3. Przejdź do koszyka
+        self.click(self.CART_ICON)
+        # Czekamy aż URL się zmieni na /Cart lub pojawi się kontener koszyka
+        self.wait_for_page_load(3)
+
+        # 4. Sprawdź czy nazwa w koszyku się zgadza
+        CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
+
+        # Używamy wait_for_all_visible zamiast find_elements, żeby uniknąć pustej listy []
+        try:
+            elements = self.wait_for_all_visible(CART_ITEM_TITLES)
+            cart_names = [el.text.strip() for el in elements]
+        except:
+            cart_names = []
+
+        print(f"Znalezione w koszyku: {cart_names}")
+
+        assert product_name in cart_names, f"BŁĄD: Produktu {product_name} nie ma w koszyku! Znaleziono: {cart_names}"
+
+    def clear_cart(self):
+        """Pancerny sposób na wyczyszczenie koszyka z obsługą Alertów"""
+        print("\n--- Rozpoczynam czyszczenie koszyka ---")
+        self.click(self.CART_ICON)
+        time.sleep(2)
+
+        while True:
+            # Pobieramy świeżą listę guzików
+            buttons = self.driver.find_elements(By.CLASS_NAME, "remove-product")
+
+            if not buttons:
+                print("Koszyk jest pusty.")
+                break
+
+            print(f"Usuwam produkt... (Zostało: {len(buttons)})")
+            try:
+                buttons[0].click()
+                time.sleep(1)  # Czekamy ułamek sekundy na pojawienie się alertu
+
+                # --- KLUCZOWY MOMENT: Obsługa Alertu ---
+                alert = self.driver.switch_to.alert
+                print(f"Akceptuję alert: {alert.text}")
+                alert.accept()
+
+                # Czekamy na przeładowanie się koszyka po usunięciu
+                time.sleep(1.5)
+            except Exception as e:
+                print(f"Koniec usuwania lub brak alertu: {e}")
+                break
+
+        print("Czyszczenie zakończone. Wracam na stronę główną.")
+        self.open_bikes_main_link()
+
+
+
     """# --- METODY: NAWIGACJA ---"""
 
     def open_bikes_main_link(self):
