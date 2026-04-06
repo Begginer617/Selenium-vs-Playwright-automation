@@ -1,7 +1,7 @@
-def test_header_page_selenium(home_page_selenium, login_page, header_page_selenium):
+def test_header_page_selenium(home_page_selenium, login_page_selenium, header_page_selenium):
     # 1. Otwórz stronę logowania i zaloguj się
     home_page_selenium.open_login_page()
-    login_page.login_as_admin()
+    login_page_selenium.login_as_admin()
 
     # 2. Test Koszyka
     header_page_selenium.click_cart()

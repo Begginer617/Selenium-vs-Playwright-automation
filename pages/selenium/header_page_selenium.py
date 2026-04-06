@@ -60,3 +60,5 @@ class HeaderSeleniumPage(BasePage):
             print(f"Standardowe kliknięcie zawiodło, używam JS dla: {locator}")
             element = self.driver.find_element(*locator)
             self.driver.execute_script("arguments[0].click();", element)
+
+
