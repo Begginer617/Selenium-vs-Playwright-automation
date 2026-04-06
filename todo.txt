@@ -17,6 +17,29 @@ TC-04: Header Navigation & Hover Menu Integrity, Registration + Login validation
 TC-05: User Authentication Security (Negative) (Próba logowania na błędne dane).
 
 
+### ✅ Progress Checklist
+- [x] Środowisko Docker (Selenium Grid + Allure)
+- [x] Automatyczne screenshoty w Allure
+
+- [ ] Scenariusz 1: Wyszukiwanie i sortowanie (Selenium)
+- [ ] Scenariusz 1: Wyszukiwanie i sortowanie (Playwright)
+
+
+
+- [ ] Scenariusz 2: Zakup produktu (Selenium)
+- [ ] Scenariusz 2: Zakup produktu (Playwright)
+
+
+
+- [ ] Scenariusz 3: Logika koszyka (Selenium)
+- [ ] Scenariusz 3: Logika koszyka (Playwright)
+
+- [x] Scenariusz 4: Header Navigation & Hover Menu Integrity, Registration + Login validation (Czy menu się rozwija i prowadzi gdzie trzeba). (Selenium)
+- [] Scenariusz 4: Header Navigation & Hover Menu Integrity, Registration + Login validation (Czy menu się rozwija i prowadzi gdzie trzeba). (Playwright)
+
+- [x] Scenariusz 5: User Authentication Security (Negative) (Selenium)
+- [] Scenariusz 5: User Authentication Security (Negative) (Playwright)
+
 
 
 
@@ -67,11 +90,7 @@ Cel: Weryfikacja obsługi komunikatów o błędach i asercji tekstowych.
 
 
 
-### ✅ Progress Checklist
-- [x] Środowisko Docker (Selenium Grid + Allure)
-- [x] Automatyczne screenshoty w Allure
-- [ ] Scenariusz 1: Zakup produktu (Selenium)
-- [ ] Scenariusz 1: Zakup produktu (Playwright)
+
 
 
 
