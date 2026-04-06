@@ -24,7 +24,7 @@ class ProductsPage(BasePage):
 
     """# Elementy na karcie produktu"""
     DISCOUNT_PERCENT_BADGE = (By.XPATH, "//span[@class='discount-pct']")
-    PRODUCT_CARD = (By.XPATH, "//div[@class='k-card']")
+    PRODUCT_CARD = (By.XPATH, "//div[contains(@class, 'k-card')]")
     PAGER_INFO = (By.XPATH, "//span[@class='k-pager-info']")
 
     """# --- LOKATORY: SORTOWANIE ---"""
@@ -79,12 +79,22 @@ class ProductsPage(BasePage):
         parts = text_info.split()
         return int(parts[4])
 
+    def get_bike_category_titles(self):
+        """Pobiera teksty z nagłówków kategorii (Mountain, Road, Touring)"""
+        elements = self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES)
+        return [el.text.strip() for el in elements]
+
     """# --- METODY: LICZENIE (COUNTERS) ---"""
 
     def count_visible_bikes(self):
-        """Zlicza fizycznie wyświetlone kafelki produktów"""
-        elements = self.driver.find_elements(*self.PRODUCT_CARD)
-        return len(elements)
+        """Zlicza kafelki, które mają widoczny tekst tytułu"""
+        # Szukamy tytułów wewnątrz kart
+        titles = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'k-card')]//div[@class='k-card-title']")
+
+        # Liczymy tylko te, które faktycznie mają jakiś tekst (nie są puste)
+        visible_titles = [t for t in titles if t.text.strip() != ""]
+
+        return len(visible_titles)
 
     def count_badges(self):
         """Zlicza plakietki procentowe widoczne na ekranie"""
