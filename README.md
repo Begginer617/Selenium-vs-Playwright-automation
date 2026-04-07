@@ -4,7 +4,8 @@
 
 ---
 
-## 🧱 Project Architecture
+# 🧱 Project Architecture
+
 The environment is orchestrated via **Docker Compose** and includes:
 * **Selenium Grid 4** (Hub + Chrome Node) – for Selenium execution.
 * **Playwright** (Python Container) – isolated environment for Playwright tests.
@@ -13,16 +14,17 @@ The environment is orchestrated via **Docker Compose** and includes:
 
 ---
 
-## 📁 Project Structure
+# 📁 Project Structure
+
 * `/docker` – infrastructure configuration (`docker-compose.yml`).
 * `/selenium_tests` – Selenium tests (integrated with `conftest.py`).
 * `/playwright_tests` – Playwright tests.
 * `/pages` – Page Object Model (POM) implementation.
 ---
 
-## 🐳 Environment Management (Docker)
+# 🐳 Environment Management (Docker)
 
-### How to Start the Environment:
+## How to Start the Environment:
 From the project root directory, run:
 Checking Status:
 docker ps
@@ -32,13 +34,16 @@ docker ps
 ->docker-compose up -d 
 
 
-Service URLs:
+## Service URLs:
+```bash
 Service	         URL	                  Description
 Selenium Grid UI	http://localhost:4444	Monitor Grid nodes and sessions
 VNC Live Preview	http://localhost:7900	Watch tests in real-time (No password)
 Allure Report UI	http://localhost:5252	View automated test reports
+```
 
-🧪 Running Tests
+
+## 🧪 Running Tests
 1. Selenium Tests (Hybrid Mode)
 The conftest.py file allows you to toggle between local and remote execution using the custom --remote flag.
 
@@ -46,11 +51,13 @@ The conftest.py file allows you to toggle between local and remote execution usi
 --remote false  → run tests locally on your machine
 
 
-🐳 Run Selenium tests in Docker (REMOTE mode)
+## 🐳 Run Selenium tests in Docker (REMOTE mode)
 (recommended for CI / reproducible environment)
 
-# Execute from the project root directory
+## Execute from the project root directory:
+
 python -m pytest selenium_tests --remote true -v
+
 ➡️ Tests run inside Docker
 ➡️ Results are automatically collected by Allure Docker Service
 ➡️ Report available at:
@@ -61,7 +68,7 @@ http://localhost:5252
 (useful for debugging without Docker)
 
 # Execute from the project root directory (local)
-pytest selenium_tests --remote false -v --alluredir=reports/allure-results
+python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
 
 Then generate a local report (optional):
 allure serve reports/allure-results
@@ -70,17 +77,27 @@ allure serve reports/allure-results
 Local Allure CLI works only with results generated locally.
 Remote (Docker) results are handled by Allure Docker Service.
 
+To ensure Allure collects your data correctly, notice the difference in directory mapping:
+
+Local Execution (--remote false):
+Tests write to ./reports/allure-results. The Allure CLI on your machine reads from this local folder.
+
+Docker Execution (--remote true):
+Tests run inside the container where the project root is /app. Results are written to /app/reports/allure-results.
+
+Why it works: The docker-compose.yml maps your local ./reports folder to the container's /app/reports. This allows the Allure Docker Service to see the results instantly.
+
 
 FOR Playwright ( in progress, not finished)
 docker exec -it playwright bash
 pytest .
 
-📊 Allure Reporting
+## 📊 Allure Reporting
 Automatic reporting (Docker mode)
 When running tests with --remote true, results are sent to:
 allure-docker-service
 
-Live report UI:
+## Live report UI:
 👉 http://localhost:5252
 No manual steps required.
 
