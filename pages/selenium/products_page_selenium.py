@@ -49,6 +49,10 @@ class ProductsPage(BasePage):
     # Tekst informujący o pustym koszyku (opcjonalnie)
     EMPTY_CART_MESSAGE = (By.XPATH, "//div[contains(text(), 'Your cart is empty')]")
 
+    CART_TOTAL_PRICE = (By.ID, "subTotalValue")
+    ALL_ADD_BUTTONS = (By.CLASS_NAME, "add-to-cart")
+
+
     """# --- Metody: KOSZYK ---"""
 
     def add_first_product_to_cart_and_verify(self):
@@ -79,6 +83,51 @@ class ProductsPage(BasePage):
         print(f"Znalezione w koszyku: {cart_names}")
 
         assert product_name in cart_names, f"BŁĄD: Produktu {product_name} nie ma w koszyku! Znaleziono: {cart_names}"
+
+    def add_multiple_products_and_verify_total(self, count=5):
+        """Dodaje X produktów i weryfikuje sumę cen w koszyku"""
+        print(f"\n--- Test sumy dla {count} produktów ---")
+
+        all_prices = self.get_all_prices()
+        # Wybieramy pierwsze 'count' produktów z listy
+        selected_prices = all_prices[:count]
+        expected_total = sum(selected_prices)
+
+        # Dodawanie produktów
+        add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
+        for i in range(count):
+            print(f"Dodaję produkt {i + 1} o cenie: ${selected_prices[i]}")
+            add_buttons[i].click()
+            time.sleep(1)
+
+        # Idź do koszyka
+        self.click(self.CART_ICON)
+
+        # CZEKANIE: Zamiast driver.find_element, używamy metody z BasePage (jeśli ją masz)
+        # lub bezpośrednio WebDriverWait
+        print("Czekam na przeliczenie sumy w koszyku...")
+        time.sleep(2)  # Prosty sleep na początek, żeby sprawdzić czy to kwestia czasu
+
+        try:
+            # Szukamy elementu sumy
+            total_element = self.driver.find_element(*self.CART_TOTAL_PRICE)
+            actual_total_text = total_element.text
+            print(f"Pobrany tekst sumy: '{actual_total_text}'")
+
+            # Konwersja "$1,234.56" -> 1234.56
+            actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
+        except Exception as e:
+            # Jeśli padnie, zrób zrzut nazw klas dostępnych na stronie, żebyśmy wiedzieli co jest nie tak
+            print(f"Nie udało się pobrać sumy. Błąd: {e}")
+            raise
+
+        print(f"Suma oczekiwana: ${expected_total:.2f}")
+        print(f"Suma w koszyku: ${actual_total:.2f}")
+
+        # Używamy round(), bo floaty w Pythonie bywają kapryśne (np. 0.1 + 0.2 != 0.3)
+        assert round(actual_total, 2) == round(expected_total, 2), \
+            f"BŁĄD SUMY! Jest {actual_total}, powinno być {expected_total}"
+        print("✅ Suma w koszyku jest prawidłowa!")
 
     def clear_cart(self):
         """Pancerny sposób na wyczyszczenie koszyka z obsługą Alertów"""
