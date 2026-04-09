@@ -41,9 +41,6 @@ TC-05: User Authentication Security (Negative) (Próba logowania na błędne dan
 - [] Scenariusz 5: User Authentication Security (Negative) (Playwright)
 
 
-
-
-
 [TC-01] Zakup produktu (End-to-End)
 
 Kroki: Strona główna -> Kliknięcie produktu -> Dodaj do koszyka -> Przejście do kasy.
