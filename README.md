@@ -63,7 +63,9 @@ The conftest.py file allows you to toggle between local and remote execution usi
 ➡️ Results are automatically collected by Allure Docker Service
 
 ➡️ Report available at:
+```bash
 http://localhost:5252
+```
 
 
 💻 Run Selenium tests locally (LOCAL mode)
@@ -71,10 +73,25 @@ http://localhost:5252
 
 # Execute from the project root directory (local)
 
-### python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
+### 
+```bash
+python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
+```
 
-Then generate a local report (optional):
+## 🏎️ Execution Modes
+
+| Mode | Command | Description |
+| :--- | :--- | :--- |
+| **Standard** | `python -m pytest selenium_tests --remote false` | Runs tests locally with visible browser. |
+| **Headless** | `python -m pytest selenium_tests --remote false --headless true` | Runs tests locally in the background (faster). |
+| **Docker** | `python -m pytest selenium_tests --remote true` | Runs tests on Selenium Grid inside Docker. |
+
+
+# Then generate a local report (optional):
+```bash
 allure serve reports/allure-results
+```
+
 
 ⚠️ Important:
 Local Allure CLI works only with results generated locally.
@@ -108,25 +125,35 @@ When running tests with --remote true, results are sent to:
 allure-docker-service
 
 ## Live report UI:
-👉 http://localhost:5252
+👉 
+```bash
+http://localhost:5252
+```
 No manual steps required.
 
 
 Local reporting (optional)
 Only for tests run with --remote false:
+```bash
 allure serve reports/allure-results
+```
 
 
 
 🛑 Stopping the Environment
 cd docker
-docker-compose down
+```bashdocker-compose down
+```
 
 
 🔐 Test Credentials
+```bash
 Email: jaxons.danniels@company.com
+```
 
+```bash
 Password: User1234
+```bash
 
 
 ## Architecture
@@ -164,13 +191,6 @@ scoop list
 - Add Allure manually to PATH:
 C:\Users\<USER>\scoop\apps\allure\current\bin
 
-❌ 2. JAVA_HOME is not set
-
-Of course — here is the full Troubleshooting section rewritten in clean, professional English, ready to paste directly into your README.
-I kept it crisp, practical, and developer‑friendly so it fits perfectly with the rest of your documentation.
-
-🛠️ Troubleshooting Guide
-This section covers the most common issues you may encounter when running the environment, executing tests, or generating reports.
 
 ❌ 1. allure: command not found
 Cause
@@ -181,14 +201,11 @@ Fix
 3. Verify installation:
 allure --version
 
-
 If it still fails:
 1. Check if Scoop installed Allure:
 scoop list
 2. Add Allure manually to PATH:
 C:\Users\<USER>\scoop\apps\allure\current\bin
-
-
 
 ❌ 2. JAVA_HOME is not set
 Cause
