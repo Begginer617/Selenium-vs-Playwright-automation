@@ -36,7 +36,7 @@ docker ps
 
 ## Service URLs:
 ```bash
-Service	         URL	                  Description
+Service	            URL	                    Description
 Selenium Grid UI	http://localhost:4444	Monitor Grid nodes and sessions
 VNC Live Preview	http://localhost:7900	Watch tests in real-time (No password)
 Allure Report UI	http://localhost:5252	View automated test reports
@@ -48,15 +48,15 @@ Allure Report UI	http://localhost:5252	View automated test reports
 The conftest.py file allows you to toggle between local and remote execution using the custom --remote flag.
 
 --remote true   → run tests inside Docker (Selenium Grid)
+
 --remote false  → run tests locally on your machine
 
 
 ## 🐳 Run Selenium tests in Docker (REMOTE mode)
-(recommended for CI / reproducible environment)
+(recommended for CI / reproducible environment). Execute from the project root directory:
 
-## Execute from the project root directory:
+### python -m pytest selenium_tests --remote true -v
 
-python -m pytest selenium_tests --remote true -v
 
 ➡️ Tests run inside Docker
 ➡️ Results are automatically collected by Allure Docker Service
@@ -68,7 +68,8 @@ http://localhost:5252
 (useful for debugging without Docker)
 
 # Execute from the project root directory (local)
-python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
+
+### python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
 
 Then generate a local report (optional):
 allure serve reports/allure-results
@@ -80,10 +81,17 @@ Remote (Docker) results are handled by Allure Docker Service.
 To ensure Allure collects your data correctly, notice the difference in directory mapping:
 
 Local Execution (--remote false):
-Tests write to ./reports/allure-results. The Allure CLI on your machine reads from this local folder.
+Tests write to
+
+#### ./reports/allure-results. 
+
+The Allure CLI on your machine reads from this local folder.
 
 Docker Execution (--remote true):
-Tests run inside the container where the project root is /app. Results are written to /app/reports/allure-results.
+Tests run inside the container where the project root is /app. Results are written to 
+
+#### /app/reports/allure-results.
+
 
 Why it works: The docker-compose.yml maps your local ./reports folder to the container's /app/reports. This allows the Allure Docker Service to see the results instantly.
 
@@ -132,7 +140,7 @@ Password: User1234
 | (Hub:4444 + Chrome Node)    |  |   CONTAINER     |  |   SERVICE   |
 +-----------------------------+  +-----------------+  +-------------+
 | VNC Port: 7900 (No Login)   |  | Python 3.14     |  | API: 5050   |
-| Hub Port: 4444              |  | Pytest          |  | UI: 5252    |
+| Hub Port: 4444              |  | Pytest          |  | UI:  5252   |
 +--------------+--------------+  +--------+--------+  +------+------+
    ```
 
