@@ -59,7 +59,9 @@ The conftest.py file allows you to toggle between local and remote execution usi
 
 
 ➡️ Tests run inside Docker
+
 ➡️ Results are automatically collected by Allure Docker Service
+
 ➡️ Report available at:
 http://localhost:5252
 
@@ -83,17 +85,17 @@ To ensure Allure collects your data correctly, notice the difference in director
 Local Execution (--remote false):
 Tests write to
 
-#### ./reports/allure-results. 
+### ./reports/allure-results. 
 
 The Allure CLI on your machine reads from this local folder.
 
 Docker Execution (--remote true):
 Tests run inside the container where the project root is /app. Results are written to 
 
-#### /app/reports/allure-results.
+### /app/reports/allure-results.
 
 
-Why it works: The docker-compose.yml maps your local ./reports folder to the container's /app/reports. This allows the Allure Docker Service to see the results instantly.
+The docker-compose.yml maps local ./reports folder to the container's /app/reports. This allows the Allure Docker Service to see the results instantly.
 
 
 FOR Playwright ( in progress, not finished)
