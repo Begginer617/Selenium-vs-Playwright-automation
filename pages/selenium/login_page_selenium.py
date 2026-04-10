@@ -19,8 +19,6 @@ class LoginPage(BasePage):
     Methodes type + click from BasePage
     """
 
-
-
     def login_as_admin(self):
         # 1. Standardowe wpisywanie danych
         self.type(self.LOGIN_FIELD, self.ADMIN_TEST_USER_EMAIL)
@@ -39,7 +37,7 @@ class LoginPage(BasePage):
             # Dodatkowo klikamy w tło strony, żeby zdjąć focus z popupu
             self.driver.find_element(By.TAG_NAME, "body").click()
         except:
-            pass # Jeśli popupu nie było, po prostu jedziemy dalej
+            pass
 
         #4. Wejście na stronę główną sklepu - home page
             self.open("https://demos.telerik.com/kendo-ui/eshop")

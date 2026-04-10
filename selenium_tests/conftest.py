@@ -4,12 +4,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 # --- IMPORTY TWOICH STRON ---
-from pages.selenium.header_page_selenium import HeaderSeleniumPage
+from pages.selenium.header_page_selenium import HeaderPage
 from pages.selenium.home_page_selenium import HomePage
 from pages.selenium.login_page_selenium import LoginPage
 from pages.selenium.registration_page_selenium import RegistrationPage
 from pages.selenium.products_page_selenium import ProductsPage
-
 
 
 # --- ZINTEGROWANA FABRYKA DRIVERA ---
@@ -51,7 +50,11 @@ def driver(request):
     options.add_argument("--disable-save-password-bubble")
     options.add_argument("--disable-notifications")
     options.add_argument("--guest")
-    options.page_load_strategy = 'eager'
+    options.page_load_strategy = 'normal'
+
+    # Problem z czanrym ekranem
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
 
     # Ukrycie automatyzacji
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -74,7 +77,7 @@ def driver(request):
     driver.quit()
 
 
-# --- FIXTURY STRON (Page Objects) ---
+# --- FIXTURY STRON Selenium (Page Objects) ---
 @pytest.fixture
 def registration_page_selenium(driver):
     return RegistrationPage(driver)
@@ -92,13 +95,12 @@ def login_page_selenium(driver):
 
 @pytest.fixture
 def header_page_selenium(driver):
-    return HeaderSeleniumPage(driver)
+    return HeaderPage(driver)
+
 
 @pytest.fixture
 def product_page_selenium(driver):
     return ProductsPage(driver)
-
-
 
 
 # --- AUTOMATYCZNE SCREENSHOTY DLA ALLURE W RAZIE BŁĘDU ---
@@ -109,8 +111,11 @@ def pytest_runtest_makereport(item, call):
     if rep.when == "call" and rep.failed:
         if "driver" in item.fixturenames:
             driver = item.funcargs['driver']
-            allure.attach(
-                driver.get_screenshot_as_png(),
-                name="failure_screenshot",
-                attachment_type=allure.attachment_type.PNG
-            )
+    try:
+        allure.attach(
+            driver.get_screenshot_as_png(),
+            name="failure_screenshot",
+            attachment_type=allure.attachment_type.PNG
+        )
+    except Exception:
+        pass  # Jeśli okno zamknięte, po prostu nie rób screena

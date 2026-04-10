@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from pages.selenium.base_page_selenium import BasePage
 
 
-class HeaderSeleniumPage(BasePage):
+class HeaderPage(BasePage):
     # --- LOKATORY ---
     SHOPPING_CART_BTN = (By.XPATH, "//a[contains(@href, 'ShoppingCart')]")
     CATEGORIES_MENU = (By.XPATH, "//span[normalize-space()='Categories']")

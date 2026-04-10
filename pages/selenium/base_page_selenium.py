@@ -79,6 +79,9 @@ class BasePage:
         element = self.wait_for_visible(locator)
         self.driver.execute_script("arguments[0].click();", element)
 
+    def get_title(self):
+        return self.driver.title
+
     # ---------- FIND HELPERS ----------
     def find(self, locator):
         return self.driver.find_element(*locator)
