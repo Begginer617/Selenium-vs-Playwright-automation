@@ -50,7 +50,7 @@ def driver(request):
     options.add_argument("--disable-save-password-bubble")
     options.add_argument("--disable-notifications")
     options.add_argument("--guest")
-    options.page_load_strategy = 'normal'
+    options.page_load_strategy = 'eager'
 
     # Problem z czanrym ekranem
     options.add_argument("--disable-gpu")
@@ -70,7 +70,7 @@ def driver(request):
 
     # 3. Inicjalizacja przez Fabrykę
     driver = DriverFactory.get_driver(run_remote=remote_opt, options=options)
-
+    driver.set_page_load_timeout(20)  # Max 20 sekund na ładowanie strony
     yield driver
 
     # 4. Zamknięcie
@@ -108,14 +108,18 @@ def product_page_selenium(driver):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
+
+    # Robimy screena TYLKO gdy test padnie w fazie 'call'
     if rep.when == "call" and rep.failed:
         if "driver" in item.fixturenames:
-            driver = item.funcargs['driver']
-    try:
-        allure.attach(
-            driver.get_screenshot_as_png(),
-            name="failure_screenshot",
-            attachment_type=allure.attachment_type.PNG
-        )
-    except Exception:
-        pass  # Jeśli okno zamknięte, po prostu nie rób screena
+            driver = item.funcargs.get('driver')
+            if driver:
+                try:
+                    # Tutaj upewniamy się, że robimy to tylko gdy driver żyje
+                    allure.attach(
+                        driver.get_screenshot_as_png(),
+                        name="failure_screenshot_selenium",
+                        attachment_type=allure.attachment_type.PNG
+                    )
+                except Exception as e:
+                    print(f"\n[Allure] Nie udało się zrobić zdjęcia: {e}")

@@ -106,7 +106,7 @@ class ProductsPage(BasePage):
         # CZEKANIE: Zamiast driver.find_element, używamy metody z BasePage (jeśli ją masz)
         # lub bezpośrednio WebDriverWait
         print("Czekam na przeliczenie sumy w koszyku...")
-        time.sleep(2)  # Prosty sleep na początek, żeby sprawdzić czy to kwestia czasu
+        time.sleep(3)
 
         try:
             # Szukamy elementu sumy
