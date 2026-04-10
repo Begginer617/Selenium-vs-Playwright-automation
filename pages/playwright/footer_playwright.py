@@ -1,3 +1,0 @@
-"""
-lOCALISATORS FOOTER
-"""
