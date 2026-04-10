@@ -1,3 +1,8 @@
+import allure
+
+
+@allure.parent_suite("Selenium Framework")
+@allure.suite("E-shop Tests")
 def test_multiple_products_total_calculation(home_page_selenium, login_page_selenium, product_page_selenium):
     # 1. Przygotowanie
     home_page_selenium.open_login_page()

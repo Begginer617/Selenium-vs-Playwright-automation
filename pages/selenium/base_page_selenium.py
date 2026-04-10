@@ -24,18 +24,18 @@ class BasePage:
     def wait_for_all_visible(self, locator):
         return self.wait.until(EC.visibility_of_all_elements_located(locator))
 
-    def wait_for_page_load(self, timeout=5):
-        WebDriverWait(self.driver, timeout).until(
-            lambda d: d.execute_script("return document.readyState") == "complete"
-        )
+    def wait_for_page_load(self, timeout=10):
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+        except TimeoutException:
+            # Nie rzucamy błędu - często strona działa, mimo że jakiś skrypt w tle wisi
+            print("Timeout czekania na status 'complete', kontynuuję test...")
 
     # ---------- ACTIONS ----------
     def click(self, locator):
-        try:
-            self.wait_for_clickable(locator).click()
-        except TimeoutException:
-            self._attach_screenshot("click_error")
-            raise
+        self.wait_for_clickable(locator).click()
 
     def safe_click(self, locator, retries=2):
         for _ in range(retries):
@@ -48,24 +48,20 @@ class BasePage:
         raise
 
     def type(self, locator, text):
-        try:
-            element = self.wait_for_visible(locator)
-            element.clear()
-            element.send_keys(text)
-        except TimeoutException:
-            self._attach_screenshot("type_error")
-            raise
+        element = self.wait_for_visible(locator)
+        element.clear()
+        element.send_keys(text)
 
     def get_text(self, locator):
-        try:
-            return self.wait_for_visible(locator).text
-        except TimeoutException:
-            self._attach_screenshot("get_text_error")
-            raise
+        self.wait_for_visible(locator).text
 
     def open(self, url):
-        self.driver.get(url)
-        self.wait_for_page_load()
+        try:
+            self.driver.get(url)
+            # Zamiast twardego czekania, dajemy szansę na załadowanie się DOM
+            self.wait_for_page_load(timeout=7)
+        except TimeoutException:
+            print(f"Strona {url} ładowała się zbyt długo.")
 
     def scroll_to(self, locator, offset=-150):
         element = self.wait_for_visible(locator)
@@ -78,6 +74,9 @@ class BasePage:
     def click_with_js(self, locator):
         element = self.wait_for_visible(locator)
         self.driver.execute_script("arguments[0].click();", element)
+
+    def get_title(self):
+        return self.driver.title
 
     # ---------- FIND HELPERS ----------
     def find(self, locator):

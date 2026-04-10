@@ -1,5 +1,6 @@
 import pytest
 from pages.selenium.registration_page_selenium import RegistrationPage
+import allure
 
 
 @pytest.fixture
@@ -7,6 +8,11 @@ def registration_page(driver):
     return RegistrationPage(driver)
 
 
+
+
+
+@allure.parent_suite("Selenium Framework")
+@allure.suite("E-shop Tests")
 def test_registration_form_validation(driver, registration_page):
     # 1. Wejdź na stronę
     # driver.get("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
