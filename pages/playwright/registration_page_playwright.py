@@ -1,0 +1,2 @@
+class RegistrationPagePw:
+    pass
