@@ -17,6 +17,13 @@ class HomePagePw(BasePagePw): # Dodajemy dziedziczenie
     MAIN_LOGIN_LINK = "//button[@type='submit' and contains(., 'Login')]"
     REGISTRATION_LOGIN_LINK = "//p[contains(text(), 'Already have an account?')]/following-sibling::a"
 
+    ADMIN_TEST_USER_EMAIL = "jaxons.danniels@company.com"
+    ADMIN_TEST_USER_PASS = "User1234"
+    EMAIL_FIELD = "#Email"
+    PASSWORD_FIELD = "#Password"
+
+
+
     """Navigation methods"""
 
     def open_home_page_pw(self):
@@ -28,7 +35,7 @@ class HomePagePw(BasePagePw): # Dodajemy dziedziczenie
     def open_register_page_pw(self):
         self.open(self.REGISTRATION_PAGE_URL)
 
-    def click_logout_button(self):
+    def click_logout_button_pw(self):
         # Zamiast self.click(self.LOGOUT_BUTTON) używamy JS
         self.js_click(self.LOGOUT_BUTTON)
 
@@ -37,6 +44,6 @@ class HomePagePw(BasePagePw): # Dodajemy dziedziczenie
     """
 
 
-    def is_logout_button_displayed(self):
+    def is_logout_button_displayed_pw(self):
     # Jeśli znaleziono przynajmniej 1 taki element w kodzie
         return self.page.locator(self.LOGOUT_BUTTON).count() > 0
