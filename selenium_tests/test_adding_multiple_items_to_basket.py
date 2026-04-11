@@ -8,7 +8,7 @@ def test_multiple_products_total_calculation(home_page_selenium, login_page_sele
     home_page_selenium.open_login_page()
     login_page_selenium.login_as_admin()
 
-    # 2. Czyszczenie (teraz już działa!)
+    # 2. Czyszczenie
     product_page_selenium.clear_cart()
 
     # 3. Wejście w kategorię

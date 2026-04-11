@@ -6,6 +6,8 @@ import time
 
 
 class LoginPage(BasePage):
+
+    """Credentials"""
     ADMIN_TEST_USER_EMAIL = "jaxons.danniels@company.com"
     ADMIN_TEST_USER_PASS = "User1234"
 
