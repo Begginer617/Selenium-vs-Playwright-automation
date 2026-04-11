@@ -32,11 +32,28 @@ def registration_page_pw(page):
     return RegistrationPagePw(page)
 
 
+
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):
     return {
         **browser_context_args,
         "viewport": {"width": 1920, "height": 1080},
+        "base_url": "https://demos.telerik.com/kendo-ui/eshop"
+    }
+
+@pytest.fixture(scope="session")
+def browser_type_launch_args():
+    return {
+        "headless": False,
+        "slow_mo": 500,
+        "args": ["--window-size", "--window-size=1920,1080"]
+    }
+
+@pytest.fixture(scope="session")
+def browser_context_args():
+    return {
+        # Ustawienie viewport na None pozwala przeglądarce przejąć rozmiar okna
+        "viewport": None,
         "base_url": "https://demos.telerik.com/kendo-ui/eshop"
     }
 
@@ -51,8 +68,8 @@ def pytest_runtest_makereport(item, call):
         page = item.funcargs.get("page")
         if page:
             try:
-                # full_page=False robi screena tylko tego, co widać (bezpieczniejsze)
-                # timeout=5000 sprawi, że nie będziemy czekać w nieskończoność
+                # full_page=False robi screena tylko tego, co widać
+                # timeout=5000 sprawi, że nie czeka w nieskończoność
                 screenshot = page.screenshot(full_page=False, timeout=5000)
                 allure.attach(
                     screenshot,
