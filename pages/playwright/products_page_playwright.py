@@ -16,7 +16,7 @@ class ProductsPagePw(BasePagePw):
     PRICE_LABELS = "//div[@class='card-price']"
     PRODUCT_TITLES = "//div[@class='k-card-title']"
     SORT_TRIGGER = "//span[contains(@class, 'k-input-value-text')]"
-    ADD_TO_CART_BTN = "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])[1]"
+    ADD_TO_CART_BTN = "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])"
     CART_ICON = "//a[contains(@href, 'Cart')]"
     REMOVE_BTN = "//p[text()='Remove']"
     CART_TOTAL_PRICE = "subTotalValue"
@@ -38,7 +38,8 @@ class ProductsPagePw(BasePagePw):
 
     def add_first_product_pw(self):
         print(f"[POM] Klikam przycisk 'Add to Cart' dla pierwszego produktu")
-        self.page.locator(f"xpath={self.ADD_TO_CART_BTN}").click()
+        # Użyj .first, aby wskazać, że interesuje Cię tylko pierwszy znaleziony element
+        self.page.locator(f"xpath={self.ADD_TO_CART_BTN}").first.click()
         return self
 
     def add_first_product_to_cart_and_verify_pw(self):
@@ -99,41 +100,36 @@ class ProductsPagePw(BasePagePw):
         return self
 
     def add_multiple_products_and_verify_total_pw(self, count=5):
-        """Dodaje X produktów i weryfikuje sumę cen w koszyku - WERSJA PLAYWRIGHT"""
         print(f"\n[POM] --- Test sumy dla {count} produktów ---")
 
-        all_prices = self.get_all_prices_pw()  # Używamy metody PW
+        # 1. Pobierz ceny wszystkich produktów na stronie
+        all_prices = self.get_all_prices_pw()
+
+        if len(all_prices) < count:
+            raise Exception(f"BŁĄD: Na stronie znaleziono tylko {len(all_prices)} produktów, a wymagano {count}.")
+
+        # 2. Oblicz sumę oczekiwaną
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
+        print(f"[DEBUG] Wybrane ceny: {selected_prices}, Oczekiwana suma: ${expected_total:.2f}")
 
-        # Dodawanie produktów
-        # Używamy self.page.locator do znalezienia przycisków
+        # 3. Dodawanie produktów
         add_buttons = self.page.locator(f"xpath={self.ADD_TO_CART_BTN}")
 
         for i in range(count):
-            print(f"[ACTION] Dodaję produkt {i + 1} o cenie: ${selected_prices[i]}")
-            add_buttons.nth(i).click()  # .nth(i) wybiera i-ty element z listy
-            self.page.wait_for_timeout(500)  # Krótkie czekanie na animację
+            print(f"[ACTION] Dodaję produkt {i + 1}...")
+            add_buttons.nth(i).click()
+            self.page.wait_for_timeout(200)  # Czekamy chwilę na dodanie do koszyka
 
-        # Idź do koszyka
+        # 4. Idź do koszyka
         self.go_to_cart_pw()
 
-        print("[POM] Czekam na przeliczenie sumy w koszyku...")
-        # Czekamy aż element sumy będzie widoczny
-        total_element = self.page.locator(f"xpath={self.CART_TOTAL_PRICE}")
+        # 5. Weryfikacja sumy
+        total_element = self.page.locator(f"#{self.CART_TOTAL_PRICE}")  # Zmiana na ID
         expect(total_element).to_be_visible()
 
-        # Pobranie tekstu
-        actual_total_text = total_element.inner_text()
-        print(f"[DEBUG] Pobrany tekst sumy: '{actual_total_text}'")
+        actual_total = float(total_element.inner_text().replace('$', '').replace(',', '').strip())
 
-        # Konwersja
-        actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
-
-        print(f"[VERIFY] Suma oczekiwana: ${expected_total:.2f}")
         print(f"[VERIFY] Suma w koszyku: ${actual_total:.2f}")
-
-        # Asercja
-        assert round(actual_total, 2) == round(expected_total, 2), \
-            f"BŁĄD SUMY! Jest {actual_total}, powinno być {expected_total}"
+        assert round(actual_total, 2) == round(expected_total, 2)
         print("✅ TEST PASSED: Suma w koszyku jest prawidłowa!")
