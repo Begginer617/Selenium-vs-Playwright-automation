@@ -5,6 +5,8 @@ from playwright.sync_api import Page
 class BasePagePw:
     def __init__(self, page: Page):
         self.page = page
+        # Wymuszenie rozmiaru ekranu w pikselach
+        self.page.set_viewport_size({"width": 1920, "height": 1080})
 
     def open(self, url: str):
         # Playwright automatycznie czeka na 'load' state
