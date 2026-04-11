@@ -19,6 +19,8 @@ class ProductsPagePw(BasePagePw):
     ADD_TO_CART_BTN = "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])[1]"
     CART_ICON = "//a[contains(@href, 'Cart')]"
     REMOVE_BTN = "//p[text()='Remove']"
+    CART_TOTAL_PRICE = "subTotalValue"
+    ALL_ADD_BUTTONS = "add-to-cart"
 
     """--- METODY --- """
 
@@ -95,3 +97,43 @@ class ProductsPagePw(BasePagePw):
         self.page.click(f"xpath={self.SORT_TRIGGER}")
         self.page.click(f"xpath={xpath_locator}")
         return self
+
+    def add_multiple_products_and_verify_total_pw(self, count=5):
+        """Dodaje X produktów i weryfikuje sumę cen w koszyku - WERSJA PLAYWRIGHT"""
+        print(f"\n[POM] --- Test sumy dla {count} produktów ---")
+
+        all_prices = self.get_all_prices_pw()  # Używamy metody PW
+        selected_prices = all_prices[:count]
+        expected_total = sum(selected_prices)
+
+        # Dodawanie produktów
+        # Używamy self.page.locator do znalezienia przycisków
+        add_buttons = self.page.locator(f"xpath={self.ADD_TO_CART_BTN}")
+
+        for i in range(count):
+            print(f"[ACTION] Dodaję produkt {i + 1} o cenie: ${selected_prices[i]}")
+            add_buttons.nth(i).click()  # .nth(i) wybiera i-ty element z listy
+            self.page.wait_for_timeout(500)  # Krótkie czekanie na animację
+
+        # Idź do koszyka
+        self.go_to_cart_pw()
+
+        print("[POM] Czekam na przeliczenie sumy w koszyku...")
+        # Czekamy aż element sumy będzie widoczny
+        total_element = self.page.locator(f"xpath={self.CART_TOTAL_PRICE}")
+        expect(total_element).to_be_visible()
+
+        # Pobranie tekstu
+        actual_total_text = total_element.inner_text()
+        print(f"[DEBUG] Pobrany tekst sumy: '{actual_total_text}'")
+
+        # Konwersja
+        actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
+
+        print(f"[VERIFY] Suma oczekiwana: ${expected_total:.2f}")
+        print(f"[VERIFY] Suma w koszyku: ${actual_total:.2f}")
+
+        # Asercja
+        assert round(actual_total, 2) == round(expected_total, 2), \
+            f"BŁĄD SUMY! Jest {actual_total}, powinno być {expected_total}"
+        print("✅ TEST PASSED: Suma w koszyku jest prawidłowa!")
