@@ -1,13 +1,5 @@
-import pytest
-from pages.selenium.registration_page_selenium import RegistrationPage
+
 import allure
-
-
-@pytest.fixture
-def registration_page(driver):
-    return RegistrationPage(driver)
-
-
 
 
 
