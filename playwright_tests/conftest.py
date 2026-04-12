@@ -32,6 +32,10 @@ def registration_page_pw(page):
     return RegistrationPagePw(page)
 
 
+@pytest.fixture
+def search_and_sort_products_pw(page):
+    return SearchAndSortProductsPw(page)
+
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):
@@ -41,6 +45,7 @@ def browser_context_args(browser_context_args):
         "base_url": "https://demos.telerik.com/kendo-ui/eshop"
     }
 
+
 @pytest.fixture(scope="session")
 def browser_type_launch_args():
     return {
@@ -48,6 +53,7 @@ def browser_type_launch_args():
         "slow_mo": 500,
         "args": ["--window-size", "--window-size=1920,1080"]
     }
+
 
 @pytest.fixture(scope="session")
 def browser_context_args():
