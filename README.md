@@ -78,6 +78,11 @@ http://localhost:5252
 python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
 ```
 
+###
+```bash
+python -m pytest playwright_tests -v -p allure_pytest --alluredir=reports/allure-results
+```
+
 ## 🏎️ Execution Modes
 
 | Mode | Command | Description |
