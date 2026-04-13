@@ -74,11 +74,13 @@ http://localhost:5252
 # Execute from the project root directory (local)
 
 ### 
+SELENIUM
 ```bash
 python -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results
 ```
 
 ###
+PYTHON
 ```bash
 python -m pytest playwright_tests -v -p allure_pytest --alluredir=reports/allure-results
 ```
