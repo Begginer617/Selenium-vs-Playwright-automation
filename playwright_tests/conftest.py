@@ -3,7 +3,7 @@ import allure
 from pages.playwright.header_page_playwright import HeaderPagePw
 from pages.playwright.home_page_playwright import HomePagePw
 from pages.playwright.login_page_playwright import LoginPagePw
-from pages.playwright.products_page_playwright import ProductsPagePw
+from pages.playwright.products_page_playwright import ProductPagePw
 from pages.playwright.registration_page_playwright import RegistrationPagePw
 
 
@@ -23,18 +23,13 @@ def header_page_pw(page):
 
 
 @pytest.fixture
-def products_page_pw(page):
-    return ProductsPagePw(page)
+def product_page_pw(page):
+    return ProductPagePw(page)
 
 
 @pytest.fixture
 def registration_page_pw(page):
     return RegistrationPagePw(page)
-
-
-@pytest.fixture
-def search_and_sort_products_pw(page):
-    return SearchAndSortProductsPw(page)
 
 
 @pytest.fixture(scope="session")
