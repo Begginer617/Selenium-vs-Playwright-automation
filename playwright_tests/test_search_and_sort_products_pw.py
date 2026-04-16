@@ -1,5 +1,5 @@
 import allure
-import pytest
+
 
 @allure.parent_suite("Playwright Framework")
 @allure.suite("E-shop Tests")
