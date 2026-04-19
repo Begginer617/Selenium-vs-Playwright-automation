@@ -83,7 +83,7 @@ class HeaderPage(BasePage):
             self.wait_for_clickable(locator, timeout=8).click()
         except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException):
             # Fallback to JS click for transient overlay/menu timing issues.
-            print(f"Standard click failed; using JS click for: {locator}")
+            self.log_warn(f"Standard click failed; using JS click for: {locator}")
             element = self.wait_for_visible(locator, timeout=6)
             self.driver.execute_script("arguments[0].click();", element)
 

@@ -30,6 +30,31 @@ class BasePage:
         effective_timeout = timeout if timeout is not None else self.default_timeout
         return self._build_wait(effective_timeout).until(condition)
 
+    def _log(self, level, message):
+        print(f"[POM][{level}] {message}")
+
+    def log_step(self, message):
+        self._log("STEP", message)
+
+    def log_info(self, message):
+        self._log("INFO", message)
+
+    def log_assert(self, message):
+        self._log("ASSERT", message)
+
+    def log_done(self, message):
+        self._log("DONE", message)
+
+    def log_warn(self, message):
+        self._log("WARN", message)
+
+    # Backward-compatible alias used in some page objects.
+    def log_warning(self, message):
+        self.log_warn(message)
+
+    def log_error(self, message):
+        self._log("ERROR", message)
+
     # ---------- WAIT HELPERS ----------
     def wait_for_visible(self, locator, timeout=None):
         return self._wait(EC.visibility_of_element_located(locator), timeout)
@@ -56,7 +81,7 @@ class BasePage:
             )
         except TimeoutException:
             # Do not fail hard here; some apps remain usable while background scripts are still running.
-            print("Timed out waiting for document.readyState='complete'; continuing test.")
+            self._log("WARN", "Timed out waiting for document.readyState='complete'; continuing test.")
 
     # ---------- ACTIONS ----------
     def click(self, locator):

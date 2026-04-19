@@ -39,44 +39,44 @@ class ProductPagePw(BasePagePw):
     """ACTIONS AND ASSERTIONS"""
 
     def open_bikes_main_link_pw(self):
-        print(f"[POM] Navigating to bikes landing page: {self.BIKE_MAIN_LINK}")
+        self.log_step(f"Navigating to bikes landing page: {self.BIKE_MAIN_LINK}")
         self.page.goto(self.BIKE_MAIN_LINK)
         return self
 
     def get_bike_category_titles_pw(self):
-        print("[POM] Collecting bike category titles...")
+        self.log_step("Collecting bike category titles")
         return self.page.locator(self.BIKE_CATEGORY_TITLES).all_inner_texts()
 
     def open_mountain_bikes_pw(self):
-        print("[POM] Opening category: Mountain Bikes")
+        self.log_step("Opening category: Mountain Bikes")
         self.page.locator(self.MOUNTAIN_BIKES).first.click()
         self.page.wait_for_load_state("networkidle")
         return self
 
     def click_filter_all_pw(self):
-        print("[POM] Applying filter: All")
+        self.log_step("Applying filter: All")
         self.page.locator(self.ALL_BIKES_FILTER).click()
         self.page.wait_for_timeout(1000)
         return self
 
     def click_filter_discounted_pw(self):
-        print("[POM] Applying filter: Discounted items only")
+        self.log_step("Applying filter: Discounted items only")
         self.page.locator(self.DISCOUNTED_BIKES_FILTER).click()
         self.page.wait_for_timeout(1000)
         return self
 
     def get_total_count_from_pager_pw(self):
-        print("[POM] Reading product count from pager...")
+        self.log_step("Reading product count from pager")
         self.page.wait_for_selector(self.PAGER_INFO, state="visible", timeout=5000)
         text = self.page.locator(self.PAGER_INFO).inner_text()
-        print(f"[DEBUG] Pager text: '{text}'")
+        self.log_info(f"Pager text: '{text}'")
         count = int(text.split("of")[-1].strip().split(" ")[0])
-        print(f"[DEBUG] Parsed pager count: {count}")
+        self.log_info(f"Parsed pager count: {count}")
         return count
 
     def assert_expected_bike_categories_pw(self, expected_titles=None):
         titles = self.get_bike_category_titles_pw()
-        print(f"[POM] Bike categories found: {titles}")
+        self.log_info(f"Bike categories found: {titles}")
         expected_titles = expected_titles or ["Mountain Bikes", "Road Bikes", "Touring Bikes"]
         for expected in expected_titles:
             assert expected in titles, f"Expected category '{expected}' in {titles}"
@@ -112,73 +112,73 @@ class ProductPagePw(BasePagePw):
     def count_badges_pw(self):
         self.page.wait_for_selector(self.DISCOUNT_BADGE, state="visible", timeout=5000)
         count = self.page.locator(self.DISCOUNT_BADGE).count()
-        print(f"[POM] Discount badge count: {count}")
+        self.log_info(f"Discount badge count: {count}")
         return count
 
     def debug_page_content_pw(self):
         all_badges = self.page.locator("//span[contains(@class, 'k-badge')]").all_inner_texts()
-        print(f"[DEBUG] Badges visible on page: {all_badges}")
+        self.log_info(f"Badges visible on page: {all_badges}")
 
     def count_visible_bikes_pw(self):
         count = self.page.locator(self.PRODUCT_CARDS).filter(has=self.page.locator(".discount-pct")).count()
-        print(f"[POM] Visible discounted cards count: {count}")
+        self.log_info(f"Visible discounted cards count: {count}")
         return count
 
     def clear_cart_pw(self):
-        print(f"[POM] Rozpoczynam czyszczenie koszyka...")
+        self.log_step("Starting cart cleanup")
         self.go_to_cart_pw()
         self.page.on("dialog", lambda dialog: dialog.accept())
         while self.page.locator(f"xpath={self.REMOVE_BTN}").count() > 0:
-            print(f"[POM] Usuwam element...")
+            self.log_step("Removing cart item")
             self.page.locator(f"xpath={self.REMOVE_BTN}").first.click()
-        print(f"[POM] Koszyk jest pusty.")
+        self.log_done("Cart is empty")
         return self
 
 
     def go_to_cart_pw(self):
-        print(f"[POM] Klikam ikonę koszyka")
+        self.log_step("Opening shopping cart")
         self.page.click(f"xpath={self.CART_ICON}")
         return self
 
     def add_first_product_pw(self):
-        print(f"[POM] Klikam przycisk 'Add to Cart' dla pierwszego produktu")
+        self.log_step("Adding first product to cart")
         # Użyj .first, aby wskazać, że interesuje Cię tylko pierwszy znaleziony element
         self.page.locator(f"xpath={self.ADD_TO_CART_BTN}").first.click()
         return self
 
     def get_all_prices_pw(self):
-        print(f"[POM] Pobieram ceny produktów")
+        self.log_step("Collecting product prices")
         locators = self.page.locator(f"xpath={self.PRICE_LABELS}")
         return [float(el.inner_text().replace('$', '').replace(',', '')) for el in locators.all()]
 
     def get_all_names_pw(self):
-        print(f"[POM] Pobieram nazwy produktów")
+        self.log_step("Collecting product names")
         locators = self.page.locator(f"xpath={self.PRODUCT_TITLES}")
         return [el.inner_text().strip() for el in locators.all()]
 
     def add_first_product_to_cart_and_verify_pw(self):
         product_names = self.get_all_names_pw()
         first_product_name = product_names[0]
-        print(f"[INFO] Wybrany produkt: '{first_product_name}'")
+        self.log_info(f"Selected product: '{first_product_name}'")
 
-        print(f"[ACTION] Dodaję produkt do koszyka...")
+        self.log_step("Adding selected product to cart")
         self.add_first_product_pw()
 
-        print(f"[ACTION] Przechodzę do koszyka...")
+        self.log_step("Opening cart for verification")
         self.go_to_cart_pw()
 
-        print(f"[VERIFY] Sprawdzam czy '{first_product_name}' jest w koszyku...")
+        self.log_assert(f"Checking whether '{first_product_name}' is visible in cart")
         cart_item_locator = self.page.locator(f"//*[contains(text(), '{first_product_name}')]")
 
         expect(cart_item_locator.first).to_be_visible()
-        print(f"[SUCCESS] Element znaleziony w koszyku!")
+        self.log_done("Product element found in cart")
 
         expect(cart_item_locator.first).to_contain_text(first_product_name)
-        print(f"✅ TEST PASSED: Nazwa produktu w koszyku się zgadza.")
+        self.log_done("Cart item name matches selected product")
         return self
 
     def all_sorting_options_pw(self):
-        print("\n[POM] --- Start sekwencji sortowania ---")
+        self.log_step("Starting sorting sequence")
 
         # 1. Klikamy trigger, żeby otworzyć menu
         self.page.locator(self.SORT_TRIGGER).click()
@@ -187,7 +187,7 @@ class ProductPagePw(BasePagePw):
         # Wybieramy opcję: Price - High to Low
         self.page.locator("li[role='option']:has-text('Price - High to Low')").click()
 
-        print("[ACTION] Wybrano: Price - High to Low")
+        self.log_step("Applied sort: Price - High to Low")
         self.page.wait_for_timeout(1000)
 
         # 3. Ponownie klikamy trigger
@@ -196,13 +196,13 @@ class ProductPagePw(BasePagePw):
         # Wybieramy opcję: Price - Low to High
         self.page.locator("li[role='option']:has-text('Price - Low to High')").click()
 
-        print("[ACTION] Wybrano: Price - Low to High")
+        self.log_step("Applied sort: Price - Low to High")
         self.page.wait_for_timeout(1000)
 
-        print("[POM] --- Koniec sekwencji sortowania ---")
+        self.log_done("Sorting sequence finished")
 
     def add_multiple_products_and_verify_total_pw(self, count=5):
-        print(f"\n[POM] --- Test sumy dla {count} produktów ---")
+        self.log_step(f"Starting total-price validation for {count} products")
 
         # 1. Pobierz ceny wszystkich produktów na stronie
         all_prices = self.get_all_prices_pw()
@@ -213,13 +213,13 @@ class ProductPagePw(BasePagePw):
         # 2. Oblicz sumę oczekiwaną
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
-        print(f"[DEBUG] Wybrane ceny: {selected_prices}, Oczekiwana suma: ${expected_total:.2f}")
+        self.log_info(f"Selected prices: {selected_prices}, expected total: ${expected_total:.2f}")
 
         # 3. Dodawanie produktów
         add_buttons = self.page.locator(f"xpath={self.ADD_TO_CART_BTN}")
 
         for i in range(count):
-            print(f"[ACTION] Dodaję produkt {i + 1}...")
+            self.log_step(f"Adding product {i + 1}/{count}")
             add_buttons.nth(i).click()
             self.page.wait_for_timeout(200)  # Czekamy chwilę na dodanie do koszyka
 
@@ -232,6 +232,6 @@ class ProductPagePw(BasePagePw):
 
         actual_total = float(total_element.inner_text().replace('$', '').replace(',', '').strip())
 
-        print(f"[VERIFY] Suma w koszyku: ${actual_total:.2f}")
+        self.log_assert(f"Cart total is ${actual_total:.2f}")
         assert round(actual_total, 2) == round(expected_total, 2)
-        print("✅ TEST PASSED: Suma w koszyku jest prawidłowa!")
+        self.log_done("Cart total matches expected value")
