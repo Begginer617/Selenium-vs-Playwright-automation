@@ -1,18 +1,27 @@
 ## Selenium-vs-Playwright-automation
 
-## README — Docker Selenium vs. Playwright Automation  
+## README — Selenium vs Playwright Thesis Project
 ### Final project for postgraduate studies in Test Automation
 
 ---
 
-# 🧱 Project Architecture
+# 🧱 Project Overview
 
-The environment is orchestrated via **Docker Compose** and includes:
+This repository compares two UI automation frameworks on the same e-commerce flows:
 
-- **Selenium Grid 4** (Hub + Chrome Node) — Selenium execution
-- **Playwright container** — isolated Playwright runtime
-- **noVNC** (`7900`) — live browser preview (**no password**)
-- **Allure Docker Service** (`5050` API + `5252` UI) — report generation and UI
+- **Selenium** (POM + pytest)
+- **Playwright** (POM + pytest-playwright)
+
+The goal is a fair, repeatable, and measurable comparison of:
+
+- stability,
+- runtime,
+- and implementation quality.
+
+Current automated coverage:
+
+- `7` Selenium test files (`8` total test cases, including parametrized scenario)
+- `7` Playwright test files (`8` total test cases, including parametrized scenario)
 
 ---
 
@@ -21,16 +30,21 @@ The environment is orchestrated via **Docker Compose** and includes:
 - `/docker` — infrastructure (`docker-compose.yml`)
 - `/selenium_tests` — Selenium tests + fixtures
 - `/playwright_tests` — Playwright tests + fixtures
-- `/pages` — Page Object Model (POM)
+- `/pages` — Page Object Model (POM) for both frameworks
 - `/reports` — Allure raw results and generated reports
 
 ---
 
-# 🐳 Environment Management (Docker)
+# 🐳 Docker Environment
 
-## Start environment
+The environment is orchestrated with Docker Compose and includes:
 
-Run from project root:
+- **Selenium Grid 4** (Hub + Chrome Node)
+- **Playwright runtime container**
+- **noVNC** (`7900`) for live browser preview
+- **Allure Docker Service** (`5050` API + `5252` UI)
+
+## Start services
 
 ```bash
 cd docker
@@ -42,51 +56,37 @@ docker ps
 
 | Service | URL | Description |
 | :--- | :--- | :--- |
-| Selenium Grid UI | http://localhost:4444 | Grid status / node sessions |
-| VNC Live Preview | http://localhost:7900 | Live browser preview |
-| Allure Report UI | http://localhost:5252 | Test report dashboard |
+| Selenium Grid UI | http://localhost:4444 | Grid status / active sessions |
+| noVNC Preview | http://localhost:7900 | Live browser view |
+| Allure UI | http://localhost:5252 | Report dashboard |
 
 ---
 
 # 🧪 Running Tests
 
-> Use `python` in your local `.venv`.  
-> In Linux/CI environments (like this cloud run), use `python3`.
+> Use `python` in local `.venv`.  
+> In Linux/CI use `python3`.
 
-## Selenium test modes (`selenium_tests/conftest.py`)
+## Selenium
 
-- `--remote true` → run on Selenium Grid (Docker)
-- `--remote false` → run locally
-- Selenium is forced to run in headed mode (non-headless) for consistent thesis comparison
+Selenium execution is **always headed (non-headless)** in this project for consistent comparison with thesis assumptions.  
+The `--headless` flag is kept only for CLI compatibility and is ignored for Selenium.
 
-### Selenium — local (headed)
+### Local execution
 
 ```bash
 python3 -m pytest selenium_tests --remote false -v
 ```
 
-### Selenium — Docker Grid (remote)
+### Docker Grid execution
 
 ```bash
 python3 -m pytest selenium_tests --remote true -v
 ```
 
-## Per-test runtime profiling
+## Playwright
 
-`pytest.ini` now enables duration profiling by default:
-
-- `--durations=0` (show runtime for all tests)
-- `--durations-min=0.1` (highlight tests slower than 0.1s)
-
-You can still override thresholds from CLI, e.g.:
-
-```bash
-python3 -m pytest selenium_tests --durations=20 --durations-min=0.2 -v
-```
-
-## Playwright tests
-
-Install browsers once (local execution):
+Install browser binaries once:
 
 ```bash
 python3 -m playwright install chromium
@@ -100,14 +100,20 @@ python3 -m pytest playwright_tests -v
 
 ---
 
-# ✅ Current verified status
+# ⏱️ Per-test Runtime Profiling (pytest --durations)
 
-Latest full verification on `refactor-final`:
+Runtime profiling is enabled globally in `pytest.ini`:
 
-- Selenium suite: `8 passed`
-- Playwright suite: `8 passed`
+- `--durations=0` (display duration for all tests)
+- `--durations-min=0.1` (mark tests slower than 0.1s)
 
-Commands used:
+### Example: show top 20 slowest Selenium tests
+
+```bash
+python3 -m pytest selenium_tests --durations=20 --durations-min=0.2 -v
+```
+
+### Example: compare total runtime framework vs framework
 
 ```bash
 python3 -m pytest selenium_tests -q
@@ -118,51 +124,38 @@ python3 -m pytest playwright_tests -q
 
 # 📊 Allure Reporting
 
-## Local Allure CLI (optional)
-
-Generate raw results:
+## Generate raw results
 
 ```bash
 python3 -m pytest selenium_tests --remote false -v -p allure_pytest --alluredir=reports/allure-results
 python3 -m pytest playwright_tests -v -p allure_pytest --alluredir=reports/allure-results
 ```
 
-Serve report locally:
+## Serve report locally
 
 ```bash
 allure serve reports/allure-results
 ```
 
-## Docker Allure Service
+## Docker Allure UI
 
-When Docker services are running, open:
+With Docker services running, open:
 
 ```bash
 http://localhost:5252
 ```
 
-### Mapping used by docker-compose
+Volume mapping:
 
 - Local: `./reports/allure-results`
 - Container: `/app/allure-results`
 
 ---
 
-# 🛑 Stopping the Environment
+# ✅ Current Status (refactor-final)
 
-From project root:
-
-```bash
-cd docker
-docker-compose down
-cd ..
-```
-
-Alternative (without changing directory):
-
-```bash
-docker-compose -f docker/docker-compose.yml down
-```
+- Selenium suite: `8 passed` (latest verified baseline before additional optimizations)
+- Playwright suite: `8 passed`
 
 ---
 
@@ -179,30 +172,27 @@ Password: User1234
 
 ## 1) `allure: command not found`
 
-- Reopen terminal after installing Allure CLI
-- Verify:
-
 ```bash
 allure --version
 ```
 
+If missing, install Allure CLI and reopen terminal.
+
 ## 2) `JAVA_HOME is not set`
 
-Allure requires Java.
+Allure requires Java:
 
-- Install JDK (Temurin 17/21 recommended)
-- Set `JAVA_HOME`
-- Add `%JAVA_HOME%/bin` to PATH
+- install JDK (Temurin 17/21 recommended),
+- set `JAVA_HOME`,
+- add `%JAVA_HOME%/bin` to PATH.
 
-## 3) Playwright cannot launch browser
-
-Install browser binaries:
+## 3) Playwright browser launch issues
 
 ```bash
 python -m playwright install chromium
 ```
 
-## 4) Selenium Grid/node startup issues
+## 4) Selenium Grid startup issues
 
 ```bash
 cd docker
@@ -210,14 +200,30 @@ docker-compose down
 docker-compose up -d
 ```
 
-## 5) Allure UI opens but no results
+## 5) Allure UI shows no results
 
-- Ensure tests were run with `--alluredir=reports/allure-results` (local CLI mode), or
-- Ensure Docker has access to `./reports/allure-results` (Docker mode)
+- run tests with `--alluredir=reports/allure-results`, and
+- ensure Docker can access `./reports/allure-results`.
 
-## 6) Port already allocated
+## 6) Port conflict (4444 / 5252 / 7900)
 
-Check what process/container uses the port and free it (e.g., 4444 / 5252 / 7900).
+Stop conflicting process/container and restart services.
+
+---
+
+# 🛑 Stopping Docker Environment
+
+```bash
+cd docker
+docker-compose down
+cd ..
+```
+
+Alternative:
+
+```bash
+docker-compose -f docker/docker-compose.yml down
+```
 
 
 
