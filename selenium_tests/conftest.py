@@ -33,13 +33,6 @@ class DriverFactory:
 def pytest_addoption(parser):
     # Allow Docker/remote execution toggle from CLI.
     parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
-    # Keep CLI compatibility, but Selenium execution is always headed.
-    parser.addoption(
-        "--headless",
-        action="store",
-        default="false",
-        help="Deprecated for Selenium; suite is forced to run headed.",
-    )
 
 
 # --- Main Selenium WebDriver fixture ---
@@ -47,12 +40,6 @@ def pytest_addoption(parser):
 def driver(request):
     # 1. Read runtime options from CLI.
     remote_opt = request.config.getoption("--remote").lower() == "true"
-    requested_headless = request.config.getoption("--headless").lower() == "true"
-    if requested_headless:
-        print(
-            "[CONFIG][INFO] --headless=true is ignored for Selenium. "
-            "Running in non-headless mode."
-        )
 
     # 2. Configure Chrome options.
     options = Options()

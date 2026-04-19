@@ -122,6 +122,89 @@ python3 -m pytest playwright_tests -q
 
 ---
 
+# 🧪 How to Reproduce Thesis Benchmark
+
+Use this sequence to reproduce a fair Selenium vs Playwright benchmark on the same machine.
+
+## 1) Prepare clean environment
+
+- close unnecessary applications/processes,
+- use the same Python virtual environment for both runs,
+- do not run other browser-heavy workloads in parallel.
+
+Optional (Docker mode):
+
+```bash
+cd docker
+docker-compose up -d
+cd ..
+```
+
+## 2) Clear previous artifacts
+
+```bash
+rm -rf reports/allure-results
+mkdir -p reports/allure-results
+```
+
+On Windows PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force reports/allure-results -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path reports/allure-results | Out-Null
+```
+
+## 3) Run Selenium benchmark
+
+Selenium runs in non-headless mode.
+
+```bash
+python3 -m pytest selenium_tests -v -p allure_pytest --alluredir=reports/allure-results --durations=0 --durations-min=0.1
+```
+
+Record:
+
+- total runtime from pytest summary,
+- pass/fail counts,
+- top slow tests from durations table.
+
+## 4) Run Playwright benchmark
+
+Playwright also runs in non-headless mode (configured with `headless: false` in `playwright_tests/conftest.py`).
+
+```bash
+python3 -m pytest playwright_tests -v -p allure_pytest --alluredir=reports/allure-results --durations=0 --durations-min=0.1
+```
+
+Record the same metrics:
+
+- total runtime,
+- pass/fail,
+- slowest tests.
+
+## 5) Compare results in thesis table
+
+Recommended columns:
+
+- Framework
+- Total tests
+- Passed
+- Failed
+- Total runtime (s)
+- Slowest test name
+- Slowest test runtime (s)
+- Notes (timeouts/flaky behavior)
+
+## 6) Repeatability recommendation
+
+For stronger methodology, run each framework at least 3 times and report:
+
+- mean runtime,
+- min/max runtime,
+- standard deviation (optional).
+
+---
+
 # 📊 Allure Reporting
 
 ## Generate raw results
