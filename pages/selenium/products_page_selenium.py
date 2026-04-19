@@ -95,29 +95,32 @@ class ProductsPage(BasePage):
     def add_multiple_products_and_verify_total(self, count=5):
         """Add N products and verify total cart value."""
         self.log_step(f"Starting cart total validation for {count} products")
-
-        all_prices = self.get_all_prices()
-        if len(all_prices) < count:
-            raise AssertionError(f"Not enough products ({len(all_prices)}) to add {count} to cart.")
-        selected_prices = all_prices[:count]
-        expected_total = sum(selected_prices)
+        selected_prices = []
 
         # Add products
         for i in range(count):
-            self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
-            previous_count = self._current_cart_count()
             # Re-fetch buttons each loop because product cards are re-rendered after add-to-cart.
             current_add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
+            current_prices = self.get_all_prices()
             if i >= len(current_add_buttons):
                 raise AssertionError(
                     f"Could not find add-to-cart button for product index {i}. "
                     f"Only {len(current_add_buttons)} buttons found."
                 )
+            if i >= len(current_prices):
+                raise AssertionError(
+                    f"Could not read price for product index {i}. "
+                    f"Only {len(current_prices)} prices found."
+                )
+            selected_prices.append(current_prices[i])
+            self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
+            previous_count = self._current_cart_count()
             current_add_buttons[i].click()
             try:
                 self._wait_for_cart_count_increment(previous_count, timeout=5)
             except Exception:
                 self.log_warn("Cart badge did not increment in time; continuing with total verification.")
+        expected_total = sum(selected_prices)
 
         # Open cart
         self.click(self.CART_ICON)
@@ -166,29 +169,44 @@ class ProductsPage(BasePage):
         """Robust cart cleanup with alert handling."""
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
+        self.wait_for_url("Cart", timeout=8)
         self.wait_for_page_load(4)
+        self._wait(
+            lambda d: len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) > 0
+            or len(d.find_elements(*self.EMPTY_CART_MESSAGE)) > 0,
+            timeout=6,
+        )
 
-        while True:
+        for _ in range(30):
             # Fetch a fresh list of remove buttons each iteration.
-            buttons = self.driver.find_elements(By.CLASS_NAME, "remove-product")
+            buttons = self.driver.find_elements(*self.REMOVE_ITEM_BUTTONS)
 
             if not buttons:
                 self.log_done("Cart is empty")
                 break
 
             self.log_step(f"Removing product, remaining entries: {len(buttons)}")
+            previous_count = len(buttons)
             try:
                 buttons[0].click()
-                # Handle removal confirmation alert.
-                alert = self._wait(EC.alert_is_present(), timeout=4)
+            except Exception:
+                self.driver.execute_script("arguments[0].click();", buttons[0])
+
+            # Some cart variants display confirmation alert, others remove inline.
+            try:
+                alert = self._wait(EC.alert_is_present(), timeout=2)
                 self.log_info(f"Accepting alert: {alert.text}")
                 alert.accept()
+            except TimeoutException:
+                self.log_info("No confirmation alert displayed for remove action.")
 
-                # Wait for cart refresh after removal.
-                self._wait(lambda d: len(d.find_elements(By.CLASS_NAME, "remove-product")) < len(buttons), timeout=5)
-            except TimeoutException as e:
-                self.log_warn(f"Stopped removal loop or missing alert: {e}")
-                break
+            # Wait for cart refresh after removal.
+            self._wait(
+                lambda d: len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) < previous_count,
+                timeout=6,
+            )
+        else:
+            raise AssertionError("Cart cleanup did not finish within safety iteration limit.")
 
         self.log_done("Cart cleanup finished; returning to bikes landing page")
         self.open_bikes_main_link()

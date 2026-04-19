@@ -15,8 +15,8 @@ def test_registration_form_validation(driver, registration_page_selenium, scenar
         print("[ASSERT] Validate required-field error messages")
         registration_page_selenium.assert_required_errors()
     else:
-        print("[STEP] Refresh page before invalid-format scenario")
-        driver.refresh()
+        print("[STEP] Re-open registration page before invalid-format scenario")
+        registration_page_selenium.open_registration_url()
         print("[STEP] Trigger invalid-format validation errors")
         registration_page_selenium.trigger_format_errors(
             incorrect_name="Tester",
