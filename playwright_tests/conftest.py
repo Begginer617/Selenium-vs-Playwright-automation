@@ -63,6 +63,7 @@ def browser_context_args():
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
+    _ = call
 
     if rep.when == "call" and rep.failed:
         # Pobieramy fixturę 'page' z testu

@@ -1,4 +1,4 @@
-from playwright.sync_api import Page, expect
+from playwright.sync_api import expect
 from pages.playwright.base_page_playwright import BasePagePw
 
 
