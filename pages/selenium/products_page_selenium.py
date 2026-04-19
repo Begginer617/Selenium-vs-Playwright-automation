@@ -1,3 +1,4 @@
+import re
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -51,6 +52,16 @@ class ProductsPage(BasePage):
     EMPTY_CART_MESSAGE = (
         By.XPATH,
         "//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'cart is empty')]",
+    )
+    CART_LINE_ITEM_PRICES = (
+        By.XPATH,
+        "//p[normalize-space()='Remove']"
+        "/ancestor::*[contains(@class, 'k-card') or contains(@class, 'cart-item')][1]"
+        "//*[contains(@class, 'card-price')]"
+        " | "
+        "//button[contains(@class, 'remove-product') or normalize-space()='Remove']"
+        "/ancestor::*[contains(@class, 'k-card') or contains(@class, 'cart-item')][1]"
+        "//*[contains(@class, 'card-price')]",
     )
 
     CART_TOTAL_PRICE = (By.ID, "subTotalValue")
@@ -152,8 +163,16 @@ class ProductsPage(BasePage):
             self.log_error(f"Failed to read cart total: {e}")
             raise
 
+        cart_line_prices = self.get_cart_line_item_prices()
+        cart_line_total = sum(cart_line_prices)
+
         self.log_assert(f"Expected total: ${expected_total:.2f}")
         self.log_assert(f"Actual total: ${actual_total:.2f}")
+        self.log_assert(f"Cart line-items sum: ${cart_line_total:.2f}")
+
+        assert round(cart_line_total, 2) == round(actual_total, 2), (
+            f"CART LINE SUM ERROR: line-items total {cart_line_total} does not match subtotal {actual_total}"
+        )
 
         # Use round() to avoid float precision artifacts.
         assert round(actual_total, 2) == round(expected_total, 2), \
@@ -313,6 +332,39 @@ class ProductsPage(BasePage):
         """Collect discount badge labels (e.g., '20% off')."""
         elements = self.driver.find_elements(*self.DISCOUNT_PERCENT_BADGE)
         return [el.text.strip() for el in elements if el.text]
+
+    @staticmethod
+    def _parse_price_text(text):
+        match = re.search(r"([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{2})?)", text.replace("$", ""))
+        if not match:
+            raise ValueError(f"Could not parse price from text: '{text}'")
+        return float(match.group(1).replace(",", ""))
+
+    def get_cart_line_item_prices(self):
+        """Collect prices from cart line items and return parsed floats."""
+        price_elements = self.driver.find_elements(*self.CART_LINE_ITEM_PRICES)
+        if not price_elements:
+            # Fallback for cart templates that do not expose remove controls as expected.
+            price_elements = self.driver.find_elements(
+                By.XPATH,
+                "//div[contains(@class, 'cart-item') or contains(@class, 'k-card')]"
+                "//*[contains(@class, 'card-price')]",
+            )
+
+        prices = []
+        for element in price_elements:
+            text = element.text.strip()
+            if not text:
+                continue
+            try:
+                prices.append(self._parse_price_text(text))
+            except ValueError:
+                continue
+
+        if not prices:
+            raise AssertionError("Could not read any cart line-item prices for subtotal validation.")
+
+        return prices
 
     def get_total_count_from_pager(self):
         """Extract total item count from pager text."""
