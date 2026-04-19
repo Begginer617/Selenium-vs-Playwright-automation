@@ -142,7 +142,7 @@ class ProductPagePw(BasePagePw):
 
     def add_first_product_pw(self):
         self.log_step("Adding first product to cart")
-        # Użyj .first, aby wskazać, że interesuje Cię tylko pierwszy znaleziony element
+        # Use .first to explicitly target the first matching element.
         self.page.locator(f"xpath={self.ADD_TO_CART_BTN}").first.click()
         return self
 
@@ -180,20 +180,19 @@ class ProductPagePw(BasePagePw):
     def all_sorting_options_pw(self):
         self.log_step("Starting sorting sequence")
 
-        # 1. Klikamy trigger, żeby otworzyć menu
+        # Open sorting dropdown.
         self.page.locator(self.SORT_TRIGGER).click()
 
-        # 2. Czekamy na element listy (li), a nie na span
-        # Wybieramy opcję: Price - High to Low
+        # Choose option: Price - High to Low.
         self.page.locator("li[role='option']:has-text('Price - High to Low')").click()
 
         self.log_step("Applied sort: Price - High to Low")
         self.page.wait_for_timeout(1000)
 
-        # 3. Ponownie klikamy trigger
+        # Open dropdown again.
         self.page.locator(self.SORT_TRIGGER).click()
 
-        # Wybieramy opcję: Price - Low to High
+        # Choose option: Price - Low to High.
         self.page.locator("li[role='option']:has-text('Price - Low to High')").click()
 
         self.log_step("Applied sort: Price - Low to High")
@@ -204,30 +203,32 @@ class ProductPagePw(BasePagePw):
     def add_multiple_products_and_verify_total_pw(self, count=5):
         self.log_step(f"Starting total-price validation for {count} products")
 
-        # 1. Pobierz ceny wszystkich produktów na stronie
+        # Collect all visible prices from product cards.
         all_prices = self.get_all_prices_pw()
 
         if len(all_prices) < count:
-            raise Exception(f"BŁĄD: Na stronie znaleziono tylko {len(all_prices)} produktów, a wymagano {count}.")
+            raise Exception(
+                f"Found only {len(all_prices)} products on page, but {count} are required."
+            )
 
-        # 2. Oblicz sumę oczekiwaną
+        # Calculate expected subtotal based on selected products.
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
         self.log_info(f"Selected prices: {selected_prices}, expected total: ${expected_total:.2f}")
 
-        # 3. Dodawanie produktów
+        # Add selected products to cart.
         add_buttons = self.page.locator(f"xpath={self.ADD_TO_CART_BTN}")
 
         for i in range(count):
             self.log_step(f"Adding product {i + 1}/{count}")
             add_buttons.nth(i).click()
-            self.page.wait_for_timeout(200)  # Czekamy chwilę na dodanie do koszyka
+            self.page.wait_for_timeout(200)  # Small delay for cart update animation.
 
-        # 4. Idź do koszyka
+        # Navigate to cart.
         self.go_to_cart_pw()
 
-        # 5. Weryfikacja sumy
-        total_element = self.page.locator(f"#{self.CART_TOTAL_PRICE}")  # Zmiana na ID
+        # Verify subtotal value in cart.
+        total_element = self.page.locator(f"#{self.CART_TOTAL_PRICE}")
         expect(total_element).to_be_visible()
 
         actual_total = float(total_element.inner_text().replace('$', '').replace(',', '').strip())
