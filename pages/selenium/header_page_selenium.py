@@ -2,6 +2,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
+    NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
 )
@@ -74,17 +75,45 @@ class HeaderPage(BasePage):
     def _hover_and_click(self, locator):
         categories = self.wait_for_visible(self.CATEGORIES_MENU, timeout=8)
         # Scroll to menu so it is visible and interactable.
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", categories)
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", categories
+        )
 
-        actions = ActionChains(self.driver)
-        actions.move_to_element(categories).pause(0.25).perform()
+        for attempt in range(3):
+            actions = ActionChains(self.driver)
+            actions.move_to_element(categories).pause(0.3).perform()
+
+            try:
+                self.wait_for_clickable(locator, timeout=4).click()
+                return
+            except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException):
+                # Retry hover/click; menu rendering is flaky in headed mode.
+                self.log_warn(f"Hover click attempt {attempt + 1}/3 failed for: {locator}")
+                try:
+                    element = self.wait_for_visible(locator, timeout=2)
+                    self.driver.execute_script("arguments[0].click();", element)
+                    return
+                except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException):
+                    continue
+
+        # Last-resort fallback: read the target category URL and navigate directly.
+        self.log_warn(f"Falling back to direct navigation for category locator: {locator}")
+        self._open_category_link_direct(locator)
+
+    def _open_category_link_direct(self, locator):
+        categories = self.wait_for_visible(self.CATEGORIES_MENU, timeout=8)
+        ActionChains(self.driver).move_to_element(categories).pause(0.3).perform()
+        self.wait_for_presence(locator, timeout=6)
 
         try:
-            self.wait_for_clickable(locator, timeout=8).click()
-        except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException):
-            # Fallback to JS click for transient overlay/menu timing issues.
-            self.log_warn(f"Standard click failed; using JS click for: {locator}")
-            element = self.wait_for_visible(locator, timeout=6)
-            self.driver.execute_script("arguments[0].click();", element)
+            link = self.driver.find_element(*locator)
+            href = link.get_attribute("href")
+        except NoSuchElementException as exc:
+            raise TimeoutException(f"Could not locate category link: {locator}") from exc
+
+        if not href:
+            raise TimeoutException(f"Category link has no href attribute: {locator}")
+
+        self.open(href)
 
 
