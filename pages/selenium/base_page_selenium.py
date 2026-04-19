@@ -7,6 +7,7 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
+    WebDriverException,
 )
 
 
@@ -109,9 +110,27 @@ class BasePage:
     def get_text(self, locator):
         return self.wait_for_visible(locator).text
 
-    def open(self, url):
-        self.driver.get(url)
-        self.wait_for_page_load(timeout=7)
+    def open(self, url, retries=2):
+        last_exception = None
+        for attempt in range(retries):
+            try:
+                self.driver.get(url)
+                self.wait_for_page_load(timeout=10)
+                return
+            except (TimeoutException, WebDriverException) as exc:
+                last_exception = exc
+                self.log_warn(
+                    f"Navigation attempt {attempt + 1}/{retries} failed for '{url}': {exc}"
+                )
+                # Renderer timeout can leave Chrome in transient broken state; stop pending load and retry.
+                try:
+                    self.driver.execute_script("window.stop();")
+                except Exception:
+                    pass
+                if attempt < retries - 1:
+                    time.sleep(0.5)
+                    continue
+        raise last_exception
 
     def scroll_to(self, locator, offset=-150):
         element = self.wait_for_visible(locator)

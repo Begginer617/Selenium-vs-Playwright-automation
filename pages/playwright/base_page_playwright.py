@@ -1,4 +1,5 @@
 import re
+import time
 import allure
 from playwright.sync_api import Page, expect
 
@@ -32,7 +33,24 @@ class BasePagePw:
 
     def open(self, url: str):
         self._log("STEP", f"Navigating to URL: {url}")
-        self.page.goto(url, wait_until="domcontentloaded")
+        self.safe_goto(url, wait_until="domcontentloaded")
+
+    def safe_goto(self, url: str, wait_until: str = "domcontentloaded", retries: int = 3):
+        last_exception = None
+        for attempt in range(retries):
+            try:
+                self.page.goto(url, wait_until=wait_until)
+                return
+            except Exception as exc:  # Playwright Timeout/Error classes are runtime-provided.
+                last_exception = exc
+                if attempt < retries - 1:
+                    self.log_warn(
+                        f"Navigation failed (attempt {attempt + 1}/{retries}) for '{url}': {exc}. Retrying..."
+                    )
+                    time.sleep(0.4)
+                    continue
+        self.log_error(f"Navigation failed after {retries} attempts: {url}")
+        raise last_exception
 
     def click(self, selector: str):
         self._log("STEP", f"Clicking element: {selector}")

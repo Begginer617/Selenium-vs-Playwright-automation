@@ -40,7 +40,7 @@ class ProductPagePw(BasePagePw):
 
     def open_bikes_main_link_pw(self):
         self.log_step(f"Navigating to bikes landing page: {self.BIKE_MAIN_LINK}")
-        self.page.goto(self.BIKE_MAIN_LINK)
+        self.open(self.BIKE_MAIN_LINK)
         return self
 
     def get_bike_category_titles_pw(self):
