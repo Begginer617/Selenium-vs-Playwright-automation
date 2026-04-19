@@ -181,7 +181,14 @@ class ProductsPage(BasePage):
         ]
         for locator in fallback_locators:
             elements = self.driver.find_elements(*locator)
-            visible_elements = [el for el in elements if el.is_displayed()]
+            visible_elements = []
+            for element in elements:
+                try:
+                    if element.is_displayed():
+                        visible_elements.append(element)
+                except Exception:
+                    # Element can become stale during cart re-render; ignore and keep searching.
+                    continue
             if visible_elements:
                 return visible_elements
         return []
@@ -194,24 +201,25 @@ class ProductsPage(BasePage):
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
         self.wait_for_url("Cart", timeout=8)
-        try:
-            self._wait(
-                lambda d: len(self._get_remove_buttons()) > 0 or self._is_cart_empty_visible(),
-                timeout=6,
-            )
-        except TimeoutException:
-            # Some builds render cart state without explicit empty markers.
-            self.log_warn("Cart state markers were not detected; continuing as empty cart.")
-            self.open_bikes_main_link()
-            return
 
         for _ in range(30):
             # Fetch a fresh list of remove buttons each iteration.
             buttons = self._get_remove_buttons()
 
             if not buttons:
-                self.log_done("Cart is empty")
-                break
+                if self._is_cart_empty_visible():
+                    self.log_done("Cart is empty")
+                    break
+                # Cart content may still be rendering after navigation.
+                try:
+                    self._wait(
+                        lambda d: len(self._get_remove_buttons()) > 0 or self._is_cart_empty_visible(),
+                        timeout=3,
+                    )
+                    continue
+                except TimeoutException:
+                    self.log_warn("No cart items were detected; treating cart as already clean.")
+                    break
 
             self.log_step(f"Removing product, remaining entries: {len(buttons)}")
             previous_count = len(buttons)
@@ -229,12 +237,20 @@ class ProductsPage(BasePage):
                 self.log_info("No confirmation alert displayed for remove action.")
 
             # Wait for cart refresh after removal.
-            self._wait(
-                lambda d: len(self._get_remove_buttons()) < previous_count or self._is_cart_empty_visible(),
-                timeout=6,
-            )
+            try:
+                self._wait(
+                    lambda d: len(self._get_remove_buttons()) < previous_count or self._is_cart_empty_visible(),
+                    timeout=4,
+                )
+            except TimeoutException:
+                # Retry cleanup loop instead of failing immediately on a single slow cart refresh.
+                self.log_warn("Cart did not refresh after remove click; retrying cleanup.")
+                continue
         else:
-            raise AssertionError("Cart cleanup did not finish within safety iteration limit.")
+            remaining = len(self._get_remove_buttons())
+            raise AssertionError(
+                f"Cart cleanup did not finish within safety iteration limit. Remaining remove controls: {remaining}"
+            )
 
         self.log_done("Cart cleanup finished; returning to bikes landing page")
         self.open_bikes_main_link()
