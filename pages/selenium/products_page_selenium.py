@@ -1,5 +1,6 @@
-import time
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from pages.selenium.base_page_selenium import BasePage
 
 
@@ -62,8 +63,9 @@ class ProductsPage(BasePage):
         self.log_info(f"Trying to add product: {product_name}")
 
         # 2. Click Add to Cart
+        previous_count = self._current_cart_count()
         self.click(self.ADD_TO_CART_BUTTON)
-        time.sleep(2)  # Kendo needs a moment for fly-to-cart animation.
+        self._wait_for_cart_count_increment(previous_count, timeout=4)
 
         # 3. Open cart
         self.click(self.CART_ICON)
@@ -160,7 +162,7 @@ class ProductsPage(BasePage):
         """Robust cart cleanup with alert handling."""
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
-        time.sleep(2)
+        self.wait_for_page_load(4)
 
         while True:
             # Fetch a fresh list of remove buttons each iteration.
@@ -173,16 +175,14 @@ class ProductsPage(BasePage):
             self.log_step(f"Removing product, remaining entries: {len(buttons)}")
             try:
                 buttons[0].click()
-                time.sleep(1)  # Allow confirm alert to appear.
-
                 # Handle removal confirmation alert.
-                alert = self.driver.switch_to.alert
+                alert = self._wait(EC.alert_is_present(), timeout=4)
                 self.log_info(f"Accepting alert: {alert.text}")
                 alert.accept()
 
                 # Wait for cart refresh after removal.
-                time.sleep(1.5)
-            except Exception as e:
+                self._wait(lambda d: len(d.find_elements(By.CLASS_NAME, "remove-product")) < len(buttons), timeout=5)
+            except TimeoutException as e:
                 self.log_warn(f"Stopped removal loop or missing alert: {e}")
                 break
 
@@ -196,14 +196,13 @@ class ProductsPage(BasePage):
     def open_bikes_main_link(self):
         """Open bikes landing page."""
         self.open("https://demos.telerik.com/kendo-ui/eshop")
-        time.sleep(1)
         self.open(self.BIKE_MAIN_LINK)
-        time.sleep(1)
+        self.wait_for_visible(self.PAGER_INFO, timeout=8)
 
     def open_mountain_bikes(self):
         """Open Mountain Bikes category."""
         self.click(self.MOUNTAINS_BIKES_CATEGORY)
-        time.sleep(2)
+        self.wait_for_visible(self.PAGER_INFO, timeout=8)
 
     """Data getters."""
 
@@ -270,7 +269,7 @@ class ProductsPage(BasePage):
         """Validate discounted filter consistency."""
         self.log_step("Applying discounted-items filter")
         self.click(self.DISCOUNTED_BIKES_FILTER)
-        time.sleep(2)  # Wait for list reload.
+        self.wait_for_page_load(3)
 
         bikes_count = self.count_visible_bikes()
         badges_count = self.count_badges()
@@ -295,11 +294,11 @@ class ProductsPage(BasePage):
 
         for locator, sort_type in scenarios:
             self.click(self.SORT_DROPDOWN_TRIGGER)
-            time.sleep(0.5)
+            self.wait_for_visible(locator, timeout=4)
 
             option_name = self.driver.find_element(*locator).text
             self.click(locator)
-            time.sleep(2)
+            self.wait_for_page_load(3)
 
             if "Price" in option_name:
                 actual = self.get_all_prices()
