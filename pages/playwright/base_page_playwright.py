@@ -4,7 +4,7 @@ import allure
 from playwright.sync_api import Page, expect
 
 class BasePagePw:
-    def __init__(self, page: Page, timeout_ms: int = 8000):
+    def __init__(self, page: Page, timeout_ms: int = 4000):
         self.page = page
         self.timeout_ms = timeout_ms
         self._log("STEP", "Initializing page object and viewport 1920x1080")
