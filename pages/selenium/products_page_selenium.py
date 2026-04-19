@@ -91,23 +91,37 @@ class ProductsPage(BasePage):
         self.log_step(f"Starting cart total validation for {count} products")
 
         all_prices = self.get_all_prices()
-        # Use first N products from the list.
+        if len(all_prices) < count:
+            raise AssertionError(f"Not enough products ({len(all_prices)}) to add {count} to cart.")
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
 
         # Add products
-        add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
         for i in range(count):
             self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
-            add_buttons[i].click()
-            time.sleep(1)
+            previous_count = self._current_cart_count()
+            # Re-fetch buttons each loop because product cards are re-rendered after add-to-cart.
+            current_add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
+            if i >= len(current_add_buttons):
+                raise AssertionError(
+                    f"Could not find add-to-cart button for product index {i}. "
+                    f"Only {len(current_add_buttons)} buttons found."
+                )
+            current_add_buttons[i].click()
+            try:
+                self._wait_for_cart_count_increment(previous_count, timeout=5)
+            except Exception:
+                self.log_warn("Cart badge did not increment in time; continuing with total verification.")
 
         # Open cart
         self.click(self.CART_ICON)
 
         # Wait for cart total to settle before reading value.
         self.log_step("Waiting for cart total recalculation")
-        time.sleep(3)
+        self._wait(
+            lambda d: d.find_element(*self.CART_TOTAL_PRICE).text.strip().startswith("$"),
+            timeout=8,
+        )
 
         try:
             # Read total value element
@@ -129,6 +143,18 @@ class ProductsPage(BasePage):
         assert round(actual_total, 2) == round(expected_total, 2), \
             f"TOTAL ERROR: got {actual_total}, expected {expected_total}"
         self.log_done("Cart total is correct")
+
+    def _current_cart_count(self):
+        """Return current numeric cart badge value; fallback to 0 when badge is missing."""
+        badge_candidates = self.driver.find_elements(By.CSS_SELECTOR, ".k-badge, .cart-count")
+        for badge in badge_candidates:
+            text = badge.text.strip()
+            if text.isdigit():
+                return int(text)
+        return 0
+
+    def _wait_for_cart_count_increment(self, previous_count, timeout=5):
+        self._wait(lambda d: self._current_cart_count() > previous_count, timeout=timeout)
 
     def clear_cart(self):
         """Robust cart cleanup with alert handling."""
