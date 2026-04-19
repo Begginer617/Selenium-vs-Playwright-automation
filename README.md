@@ -143,9 +143,18 @@ http://localhost:5252
 
 # 🛑 Stopping the Environment
 
+From project root:
+
 ```bash
 cd docker
 docker-compose down
+cd ..
+```
+
+Alternative (without changing directory):
+
+```bash
+docker-compose -f docker/docker-compose.yml down
 ```
 
 ---
