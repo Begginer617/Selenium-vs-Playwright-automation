@@ -73,15 +73,19 @@ class ProductsPage(BasePage):
 
         # 3. Open cart
         self.click(self.CART_ICON)
-        # Wait for cart navigation/container to render.
-        self.wait_for_page_load(3)
+        self.wait_for_url("Cart", timeout=6)
+        self._wait(
+            lambda d: len(d.find_elements(*self.CART_ITEM_TITLES)) > 0
+            or len(d.find_elements(*self.EMPTY_CART_MESSAGE)) > 0,
+            timeout=4,
+        )
 
         # 4. Verify product name inside cart
         CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
 
-        # Use wait_for_all_visible to avoid unstable empty list reads.
+        # Use explicit visibility wait to avoid unstable empty-list reads.
         try:
-            elements = self.wait_for_all_visible(CART_ITEM_TITLES)
+            elements = self.wait_for_all_visible(CART_ITEM_TITLES, timeout=4)
             cart_names = [el.text.strip() for el in elements]
         except:
             cart_names = []
@@ -170,7 +174,6 @@ class ProductsPage(BasePage):
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
         self.wait_for_url("Cart", timeout=8)
-        self.wait_for_page_load(4)
         self._wait(
             lambda d: len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) > 0
             or len(d.find_elements(*self.EMPTY_CART_MESSAGE)) > 0,
@@ -194,7 +197,7 @@ class ProductsPage(BasePage):
 
             # Some cart variants display confirmation alert, others remove inline.
             try:
-                alert = self._wait(EC.alert_is_present(), timeout=2)
+                alert = self._wait(EC.alert_is_present(), timeout=4)
                 self.log_info(f"Accepting alert: {alert.text}")
                 alert.accept()
             except TimeoutException:
@@ -217,7 +220,6 @@ class ProductsPage(BasePage):
 
     def open_bikes_main_link(self):
         """Open bikes landing page."""
-        self.open("https://demos.telerik.com/kendo-ui/eshop")
         self.open(self.BIKE_MAIN_LINK)
         self._wait_for_bikes_landing_ready(timeout=10)
 
@@ -312,7 +314,7 @@ class ProductsPage(BasePage):
         """Validate discounted filter consistency."""
         self.log_step("Applying discounted-items filter")
         self.click(self.DISCOUNTED_BIKES_FILTER)
-        self.wait_for_page_load(3)
+        self._wait_for_product_grid_ready(timeout=6)
 
         bikes_count = self.count_visible_bikes()
         badges_count = self.count_badges()
@@ -369,14 +371,14 @@ class ProductsPage(BasePage):
 
     def assert_products_available_for_all_filter(self):
         self.click(self.ALL_BIKES_FILTER)
-        self.wait_for_page_load(2)
+        self._wait_for_product_grid_ready(timeout=5)
         all_items_count = self.get_total_count_from_pager()
         assert all_items_count > 0, f"Expected all-items count > 0, got {all_items_count}"
         return all_items_count
 
     def assert_discounted_filter_consistency(self, expected_all_count=None):
         self.click(self.DISCOUNTED_BIKES_FILTER)
-        self.wait_for_page_load(2)
+        self._wait_for_product_grid_ready(timeout=5)
         discounted_pager_count = self.get_total_count_from_pager()
         discounted_badges_count = self.count_badges()
         discounted_cards_count = self.count_visible_bikes()
