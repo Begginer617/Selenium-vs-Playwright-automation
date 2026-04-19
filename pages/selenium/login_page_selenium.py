@@ -26,7 +26,7 @@ class LoginPage(BasePage):
 
             if attempt == 0:
                 # Primary path: click submit button.
-                self.safe_click(self.LOGIN_BUTTON, retries=3)
+                self.safe_click(self.LOGIN_BUTTON, retries=2)
             else:
                 # Fallback path: submit with Enter for environments where click is flaky.
                 self.wait_for_visible(self.PASSWORD_FIELD).send_keys(Keys.ENTER)

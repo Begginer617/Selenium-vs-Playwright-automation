@@ -1,3 +1,4 @@
+import contextlib
 import allure
 import pytest
 from selenium import webdriver
@@ -11,35 +12,33 @@ from pages.selenium.registration_page_selenium import RegistrationPage
 from pages.selenium.products_page_selenium import ProductsPage
 
 
-# --- ZINTEGROWANA FABRYKA DRIVERA ---
+# --- Driver factory ---
 class DriverFactory:
     @staticmethod
     def get_driver(run_remote, options):
         if run_remote:
-            # Ustawienia dla DOCKERA
+            # Docker/remote execution.
             executor_url = "http://localhost:4444/wd/hub"
             driver = webdriver.Remote(
                 command_executor=executor_url,
                 options=options
             )
         else:
-            # Ustawienia LOKALNE (Windows)
+            # Local execution.
             driver = webdriver.Chrome(options=options)
-
-        driver.maximize_window()
         return driver
 
 
-# --- KONFIGURACJA PYTEST (FLAGI) ---
+# --- Pytest CLI options ---
 def pytest_addoption(parser):
     # Allow Docker/remote execution toggle from CLI.
     parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
-    # Keep README-compatible headless switch for local stability checks.
-    parser.addoption("--headless", action="store", default="false", help="Run browser headless: true or false")
+    # Default to headless for faster local Selenium execution.
+    parser.addoption("--headless", action="store", default="true", help="Run browser headless: true or false")
 
 
-# --- GŁÓWNA FIXTURA DRIVERA ---
-@pytest.fixture
+# --- Main Selenium WebDriver fixture ---
+@pytest.fixture(scope="session")
 def driver(request):
     # 1. Read runtime options from CLI.
     remote_opt = request.config.getoption("--remote").lower() == "true"
@@ -53,7 +52,10 @@ def driver(request):
     options.add_argument("--disable-save-password-bubble")
     options.add_argument("--disable-notifications")
     options.add_argument("--guest")
-    options.page_load_strategy = 'eager'
+    options.page_load_strategy = "eager"
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-renderer-backgrounding")
+    options.add_argument("--disable-backgrounding-occluded-windows")
 
     # Improve stability in containerized/virtualized Linux.
     options.add_argument("--disable-gpu")
@@ -62,11 +64,11 @@ def driver(request):
     if headless_opt:
         options.add_argument("--headless=new")
 
-    # Ukrycie automatyzacji
+    # Hide automation extensions/flags.
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
+    options.add_experimental_option("useAutomationExtension", False)
 
-    # Preferencje profilu
+    # Profile preferences.
     prefs = {
         "credentials_enable_service": False,
         "profile.password_manager_enabled": False,
@@ -74,13 +76,27 @@ def driver(request):
     }
     options.add_experimental_option("prefs", prefs)
 
-    # 3. Inicjalizacja przez Fabrykę
+    # 3. Initialize driver.
     driver = DriverFactory.get_driver(run_remote=remote_opt, options=options)
-    driver.set_page_load_timeout(20)  # Max 20 sekund na ładowanie strony
+    driver.set_page_load_timeout(12)
+    driver.implicitly_wait(0)
+    if not headless_opt:
+        with contextlib.suppress(Exception):
+            driver.maximize_window()
     yield driver
 
-    # 4. Zamknięcie
+    # 4. Teardown.
     driver.quit()
+
+# --- Per-test browser-state reset on shared driver ---
+@pytest.fixture(autouse=True)
+def reset_browser_state(driver):
+    # Keep tests isolated while reusing one browser instance for speed.
+    with contextlib.suppress(Exception):
+        driver.delete_all_cookies()
+    with contextlib.suppress(Exception):
+        driver.execute_script("window.localStorage.clear(); window.sessionStorage.clear();")
+    yield
 
 
 # --- FIXTURY STRON Selenium (Page Objects) ---
@@ -109,23 +125,22 @@ def product_page_selenium(driver):
     return ProductsPage(driver)
 
 
-# --- AUTOMATYCZNE SCREENSHOTY DLA ALLURE W RAZIE BŁĘDU ---
+# --- Automatic Allure screenshots on test failure ---
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
 
-    # Robimy screena TYLKO gdy test padnie w fazie 'call'
+    # Capture screenshot only when test fails in call phase.
     if rep.when == "call" and rep.failed:
         if "driver" in item.fixturenames:
-            driver = item.funcargs.get('driver')
+            driver = item.funcargs.get("driver")
             if driver:
                 try:
-                    # Tutaj upewniamy się, że robimy to tylko gdy driver żyje
                     allure.attach(
                         driver.get_screenshot_as_png(),
                         name="failure_screenshot_selenium",
                         attachment_type=allure.attachment_type.PNG
                     )
                 except Exception as e:
-                    print(f"\n[Allure] Nie udało się zrobić zdjęcia: {e}")
+                    print(f"\n[Allure] Failed to capture screenshot: {e}")
