@@ -18,32 +18,32 @@ class HomePagePw(BasePagePw):
     """Navigation methods"""
 
     def open_home_page_pw(self):
-        print(f"[POM] Nawiguję do strony głównej: {self.HOME_PAGE_URL}")
+        self.log_step(f"Navigate to home page: {self.HOME_PAGE_URL}")
         self.open(self.HOME_PAGE_URL)
         return self
 
     def open_login_page_pw(self):
-        print(f"[POM] Nawiguję do strony logowania")
+        self.log_step("Navigate to login page")
         self.open(self.LOGIN_PAGE_URL)
         return self
 
     def open_register_page_pw(self):
-        print(f"[POM] Nawiguję do strony rejestracji")
+        self.log_step("Navigate to registration page")
         self.open(self.REGISTRATION_PAGE_URL)
         return self
 
     def click_logout_button_pw(self):
-        print("[POM] Clicking logout action (JS)")
+        self.log_step("Click logout action via JS")
         self.js_click(self.LOGOUT_BUTTON)
         return self
 
     """Verification methods"""
 
     def is_logout_button_displayed_pw(self):
-        print("[POM] Checking whether logout action is available...")
+        self.log_step("Check whether logout action is available")
         is_visible = self.page.locator(self.LOGOUT_BUTTON).count() > 0
         if is_visible:
-            print("[SUCCESS] Logout action found.")
+            self.log_done("Logout action found")
         else:
-            print("[WARNING] Logout action was not found.")
+            self.log_warn("Logout action was not found")
         return is_visible

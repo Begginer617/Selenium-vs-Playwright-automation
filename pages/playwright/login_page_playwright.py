@@ -17,19 +17,19 @@ class LoginPagePw(BasePagePw):
     AUTHENTICATED_FAVORITES_LINK = "//a[contains(@href, '/Account/Favorites')]"
 
     def login_as_admin_pw(self):
-        print(f"[POM] Filling email field: {self.ADMIN_TEST_USER_EMAIL}")
+        self.log_step(f"Filling email field for user: {self.ADMIN_TEST_USER_EMAIL}")
         self.page.fill(self.LOGIN_FIELD, self.ADMIN_TEST_USER_EMAIL)
 
-        print("[POM] Filling password field")
+        self.log_step("Filling password field")
         self.page.fill(self.PASSWORD_FIELD, self.ADMIN_TEST_USER_PASS)
 
-        print("[POM] Clicking login button...")
+        self.log_step("Clicking login button")
         self.page.click(self.LOGIN_BUTTON)
 
-        print("[POM] Waiting for post-login state...")
+        self.log_step("Waiting for post-login authenticated state")
         self.wait_for_url("/eshop")
         self.wait_for_visible(self.AUTHENTICATED_FAVORITES_LINK)
-        print("[SUCCESS] Login completed successfully.")
+        self.log_done("Login completed successfully")
 
         return self
 

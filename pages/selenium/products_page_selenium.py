@@ -59,7 +59,7 @@ class ProductsPage(BasePage):
         """Dodaje pierwszy produkt do koszyka i sprawdza czy tam jest"""
         # 1. Pobierz nazwę pierwszego produktu
         product_name = self.get_all_names()[0]
-        print(f"Próbuję dodać: {product_name}")
+        self.log_info(f"Trying to add product: {product_name}")
 
         # 2. Kliknij Add to Cart
         self.click(self.ADD_TO_CART_BUTTON)
@@ -80,13 +80,13 @@ class ProductsPage(BasePage):
         except:
             cart_names = []
 
-        print(f"Znalezione w koszyku: {cart_names}")
+        self.log_info(f"Cart items found: {cart_names}")
 
         assert product_name in cart_names, f"BŁĄD: Produktu {product_name} nie ma w koszyku! Znaleziono: {cart_names}"
 
     def add_multiple_products_and_verify_total(self, count=5):
         """Dodaje X produktów i weryfikuje sumę cen w koszyku"""
-        print(f"\n--- Test sumy dla {count} produktów ---")
+        self.log_step(f"Starting cart total validation for {count} products")
 
         all_prices = self.get_all_prices()
         # Wybieramy pierwsze 'count' produktów z listy
@@ -96,7 +96,7 @@ class ProductsPage(BasePage):
         # Dodawanie produktów
         add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
         for i in range(count):
-            print(f"Dodaję produkt {i + 1} o cenie: ${selected_prices[i]}")
+            self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
             add_buttons[i].click()
             time.sleep(1)
 
@@ -105,33 +105,33 @@ class ProductsPage(BasePage):
 
         # CZEKANIE: Zamiast driver.find_element, używamy metody z BasePage (jeśli ją masz)
         # lub bezpośrednio WebDriverWait
-        print("Czekam na przeliczenie sumy w koszyku...")
+        self.log_step("Waiting for cart total recalculation")
         time.sleep(3)
 
         try:
             # Szukamy elementu sumy
             total_element = self.driver.find_element(*self.CART_TOTAL_PRICE)
             actual_total_text = total_element.text
-            print(f"Pobrany tekst sumy: '{actual_total_text}'")
+            self.log_info(f"Raw cart total text: '{actual_total_text}'")
 
             # Konwersja "$1,234.56" -> 1234.56
             actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
         except Exception as e:
             # Jeśli padnie, zrób zrzut nazw klas dostępnych na stronie, żebyśmy wiedzieli co jest nie tak
-            print(f"Nie udało się pobrać sumy. Błąd: {e}")
+            self.log_error(f"Failed to read cart total: {e}")
             raise
 
-        print(f"Suma oczekiwana: ${expected_total:.2f}")
-        print(f"Suma w koszyku: ${actual_total:.2f}")
+        self.log_assert(f"Expected total: ${expected_total:.2f}")
+        self.log_assert(f"Actual total: ${actual_total:.2f}")
 
         # Używamy round(), bo floaty w Pythonie bywają kapryśne (np. 0.1 + 0.2 != 0.3)
         assert round(actual_total, 2) == round(expected_total, 2), \
             f"BŁĄD SUMY! Jest {actual_total}, powinno być {expected_total}"
-        print("✅ Suma w koszyku jest prawidłowa!")
+        self.log_done("Cart total is correct")
 
     def clear_cart(self):
         """Pancerny sposób na wyczyszczenie koszyka z obsługą Alertów"""
-        print("\n--- Rozpoczynam czyszczenie koszyka ---")
+        self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
         time.sleep(2)
 
@@ -140,26 +140,26 @@ class ProductsPage(BasePage):
             buttons = self.driver.find_elements(By.CLASS_NAME, "remove-product")
 
             if not buttons:
-                print("Koszyk jest pusty.")
+                self.log_done("Cart is empty")
                 break
 
-            print(f"Usuwam produkt... (Zostało: {len(buttons)})")
+            self.log_step(f"Removing product, remaining entries: {len(buttons)}")
             try:
                 buttons[0].click()
                 time.sleep(1)  # Czekamy ułamek sekundy na pojawienie się alertu
 
                 # --- KLUCZOWY MOMENT: Obsługa Alertu ---
                 alert = self.driver.switch_to.alert
-                print(f"Akceptuję alert: {alert.text}")
+                self.log_info(f"Accepting alert: {alert.text}")
                 alert.accept()
 
                 # Czekamy na przeładowanie się koszyka po usunięciu
                 time.sleep(1.5)
             except Exception as e:
-                print(f"Koniec usuwania lub brak alertu: {e}")
+                self.log_warn(f"Stopped removal loop or missing alert: {e}")
                 break
 
-        print("Czyszczenie zakończone. Wracam na stronę główną.")
+        self.log_done("Cart cleanup finished; returning to bikes landing page")
         self.open_bikes_main_link()
 
 
@@ -216,7 +216,7 @@ class ProductsPage(BasePage):
 
     def assert_expected_bike_categories(self, expected_titles=None):
         titles = self.get_bike_category_titles()
-        print(f"Bike categories found: {titles}")
+        self.log_info(f"Bike categories found: {titles}")
         expected = expected_titles or ["Mountain Bikes", "Road Bikes", "Touring Bikes"]
         for expected_title in expected:
             assert expected_title in titles, f"Expected category '{expected_title}' in {titles}"
@@ -241,21 +241,21 @@ class ProductsPage(BasePage):
 
     def verify_discount_filter(self):
         """KLUCZOWY TEST: Sprawdza czy filtr rabatów działa uczciwie"""
-        print("Aktywuję filtr: Discounted items only...")
+        self.log_step("Applying discounted-items filter")
         self.click(self.DISCOUNTED_BIKES_FILTER)
         time.sleep(2)  # Czekamy na przeładowanie listy
 
         bikes_count = self.count_visible_bikes()
         badges_count = self.count_badges()
 
-        print(f"DEBUG: Znaleziono {bikes_count} produktów i {badges_count} plakietek.")
+        self.log_info(f"Discount filter debug: products={bikes_count}, badges={badges_count}")
 
         assert bikes_count > 0, "BŁĄD: Filtr nie zwrócił żadnych wyników!"
         assert bikes_count == badges_count, (
             f"BŁĄD FILTRA! Wyświetlono {bikes_count} produktów, "
             f"ale tylko {badges_count} ma plakietkę rabatu."
         )
-        print("✅ SUKCES: Wszystkie widoczne produkty posiadają rabat.")
+        self.log_done("All visible products have discount badges")
 
     def all_sorting_options(self):
         """Testuje po kolei wszystkie opcje sortowania"""
@@ -283,7 +283,7 @@ class ProductsPage(BasePage):
                 is_desc = (sort_type == "name_desc")
                 assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania nazw: {option_name}"
 
-            print(f"✅ Sukces: Sortowanie '{option_name}' działa poprawnie!")
+            self.log_done(f"Sorting '{option_name}' works correctly")
 
     def assert_products_available_for_all_filter(self):
         self.click(self.ALL_BIKES_FILTER)
