@@ -1,3 +1,4 @@
+import re
 from playwright.sync_api import Page, expect
 
 class HeaderPagePw:
@@ -21,7 +22,7 @@ class HeaderPagePw:
         return self.page.url
 
     def assert_url_contains_pw(self, expected_fragment: str):
-        expect(self.page).to_have_url(f"**{expected_fragment}**")
+        expect(self.page).to_have_url(re.compile(re.escape(expected_fragment)))
 
     def validate_header_navigation_pw(self):
         checks = [

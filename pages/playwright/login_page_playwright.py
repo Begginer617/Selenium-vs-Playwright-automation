@@ -14,7 +14,7 @@ class LoginPagePw(BasePagePw):
     LOGIN_FIELD = "#Email"
     PASSWORD_FIELD = "#Password"
     LOGIN_BUTTON = ".k-form-submit"
-    LOGOUT_BUTTON = "//a[contains(@class, 'k-menu-link') and text()='Logout']"
+    AUTHENTICATED_FAVORITES_LINK = "//a[contains(@href, '/Account/Favorites')]"
 
     def login_as_admin_pw(self):
         print(f"[POM] Filling email field: {self.ADMIN_TEST_USER_EMAIL}")
@@ -28,13 +28,13 @@ class LoginPagePw(BasePagePw):
 
         print("[POM] Waiting for post-login state...")
         self.wait_for_url("/eshop")
-        self.wait_for_visible(self.LOGOUT_BUTTON)
+        self.wait_for_visible(self.AUTHENTICATED_FAVORITES_LINK)
         print("[SUCCESS] Login completed successfully.")
 
         return self
 
     def is_logged_in_pw(self):
-        return self.page.locator(self.LOGOUT_BUTTON).first.is_visible()
+        return self.page.locator(self.AUTHENTICATED_FAVORITES_LINK).first.is_visible()
 
     def expect_logged_in_pw(self):
-        expect(self.page.locator(self.LOGOUT_BUTTON).first).to_be_visible(timeout=self.timeout_ms)
+        expect(self.page.locator(self.AUTHENTICATED_FAVORITES_LINK).first).to_be_visible(timeout=self.timeout_ms)

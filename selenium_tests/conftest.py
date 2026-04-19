@@ -32,29 +32,35 @@ class DriverFactory:
 
 # --- KONFIGURACJA PYTEST (FLAGI) ---
 def pytest_addoption(parser):
-    # Dodaje możliwość wpisania --remote true w konsoli
+    # Allow Docker/remote execution toggle from CLI.
     parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
+    # Keep README-compatible headless switch for local stability checks.
+    parser.addoption("--headless", action="store", default="false", help="Run browser headless: true or false")
 
 
 # --- GŁÓWNA FIXTURA DRIVERA ---
 @pytest.fixture
 def driver(request):
-    # 1. Pobranie opcji z terminala
+    # 1. Read runtime options from CLI.
     remote_opt = request.config.getoption("--remote").lower() == "true"
+    headless_opt = request.config.getoption("--headless").lower() == "true"
 
-    # 2. Konfiguracja zaawansowanych opcji Chrome (Twoje ustawienia)
+    # 2. Configure Chrome options.
     options = Options()
 
-    # Blokowanie popupów i managera haseł
+    # Disable password/pop-up features that can interfere with automation.
     options.add_argument("--disable-features=PasswordLeakDetection,SafeBrowsing")
     options.add_argument("--disable-save-password-bubble")
     options.add_argument("--disable-notifications")
     options.add_argument("--guest")
     options.page_load_strategy = 'eager'
 
-    # Problem z czanrym ekranem
+    # Improve stability in containerized/virtualized Linux.
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    if headless_opt:
+        options.add_argument("--headless=new")
 
     # Ukrycie automatyzacji
     options.add_experimental_option("excludeSwitches", ["enable-automation"])

@@ -1,3 +1,4 @@
+import re
 import allure
 from playwright.sync_api import Page, expect
 
@@ -21,7 +22,8 @@ class BasePagePw:
     def js_click(self, selector: str):
         print(f"[POM] Executing JS click on element: {selector}")
         locator = self.page.locator(selector)
-        expect(locator).to_be_visible(timeout=self.timeout_ms)
+        # JS click is used as fallback also for covered/hidden nodes.
+        expect(locator).to_have_count(1, timeout=self.timeout_ms)
         locator.evaluate("el => el.click()")
 
     def type(self, selector: str, text: str):
@@ -41,8 +43,9 @@ class BasePagePw:
         return locator
 
     def wait_for_url(self, expected_url_fragment: str):
+        # Use regex "contains" semantics to avoid fragile glob-base_url interactions.
         expect(self.page).to_have_url(
-            f"**{expected_url_fragment}**",
+            re.compile(re.escape(expected_url_fragment)),
             timeout=self.timeout_ms,
         )
 

@@ -14,25 +14,51 @@ class LoginPage(BasePage):
     LOGIN_FIELD = (By.ID, "Email")
     PASSWORD_FIELD = (By.ID, "Password")
     LOGIN_BUTTON = (By.CSS_SELECTOR, ".k-form-submit")
-    LOGOUT_BUTTON = (By.XPATH, "//a[contains(@class, 'k-menu-link') and normalize-space()='Logout']")
+    LOGIN_PAGE_URL_FRAGMENT = "Account/Login"
+    LOGIN_ERROR_EMAIL = (By.XPATH, "//a[@data-field='Email' and contains(text(), 'not valid email')]")
+    AUTHENTICATED_FAVORITES_LINK = (By.XPATH, "//a[contains(@href, '/Account/Favorites')]")
     """Methods using BasePage actions and waits."""
 
     def login_as_admin(self):
-        self.type(self.LOGIN_FIELD, self.ADMIN_TEST_USER_EMAIL)
-        self.type(self.PASSWORD_FIELD, self.ADMIN_TEST_USER_PASS)
+        for attempt in range(2):
+            self.type(self.LOGIN_FIELD, self.ADMIN_TEST_USER_EMAIL)
+            self.type(self.PASSWORD_FIELD, self.ADMIN_TEST_USER_PASS)
 
-        # Submit with Enter to keep behavior close to manual user flow.
-        password_element = self.wait_for_visible(self.PASSWORD_FIELD)
-        password_element.send_keys(Keys.ENTER)
+            if attempt == 0:
+                # Primary path: click submit button.
+                self.safe_click(self.LOGIN_BUTTON, retries=3)
+            else:
+                # Fallback path: submit with Enter for environments where click is flaky.
+                self.wait_for_visible(self.PASSWORD_FIELD).send_keys(Keys.ENTER)
 
-        # Explicit post-login waits to avoid returning too early.
-        self.wait_for_url("/eshop", timeout=12)
-        self.wait_for_visible(self.LOGOUT_BUTTON, timeout=12)
+            try:
+                self._wait(
+                    lambda d: self.LOGIN_PAGE_URL_FRAGMENT not in d.current_url,
+                    timeout=20,
+                )
+                self._wait(
+                    lambda d: "Home Page" in d.title
+                    or len(d.find_elements(*self.AUTHENTICATED_FAVORITES_LINK)) > 0,
+                    timeout=10,
+                )
+                return self
+            except TimeoutException:
+                if attempt == 0:
+                    # Retry once with Enter submit if click path did not complete authentication.
+                    self.open("https://demos.telerik.com/kendo-ui/eshop/Account/Login")
+                    continue
+                raise
+
         return self
 
     def is_logged_in(self):
         try:
-            return self.wait_for_visible(self.LOGOUT_BUTTON, timeout=6).is_displayed()
+            self._wait(
+                lambda d: self.LOGIN_PAGE_URL_FRAGMENT not in d.current_url
+                and ("Home Page" in d.title or len(d.find_elements(*self.AUTHENTICATED_FAVORITES_LINK)) > 0),
+                timeout=10,
+            )
+            return True
         except TimeoutException:
             return False
 
