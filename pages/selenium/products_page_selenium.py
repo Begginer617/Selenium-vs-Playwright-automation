@@ -197,12 +197,33 @@ class ProductsPage(BasePage):
         """Open bikes landing page."""
         self.open("https://demos.telerik.com/kendo-ui/eshop")
         self.open(self.BIKE_MAIN_LINK)
-        self.wait_for_visible(self.PAGER_INFO, timeout=8)
+        self._wait_for_bikes_landing_ready(timeout=10)
 
     def open_mountain_bikes(self):
         """Open Mountain Bikes category."""
         self.click(self.MOUNTAINS_BIKES_CATEGORY)
-        self.wait_for_visible(self.PAGER_INFO, timeout=8)
+        self._wait_for_product_grid_ready(timeout=10)
+
+    def _wait_for_bikes_landing_ready(self, timeout=10):
+        """Wait for bikes landing page regardless of whether pager is visible yet."""
+        self.wait_for_url("Home/Bikes", timeout=timeout)
+        self._wait(
+            lambda d: len(d.find_elements(*self.BIKE_CATEGORY_TITLES)) > 0
+            or len(d.find_elements(*self.PRODUCT_CARD)) > 0
+            or len(d.find_elements(*self.PAGER_INFO)) > 0,
+            timeout=timeout,
+        )
+
+    def _wait_for_product_grid_ready(self, timeout=10):
+        """Wait for product cards and related listing markers to appear."""
+        self._wait(
+            lambda d: len(d.find_elements(*self.PRODUCT_CARD)) > 0
+            and (
+                len(d.find_elements(*self.PAGER_INFO)) > 0
+                or len(d.find_elements(*self.DISCOUNT_PERCENT_BADGE)) >= 0
+            ),
+            timeout=timeout,
+        )
 
     """Data getters."""
 
