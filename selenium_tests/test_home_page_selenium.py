@@ -4,14 +4,17 @@ import allure
 @allure.parent_suite("Selenium Framework")
 @allure.suite("E-shop Tests")
 def test_homepage_title(home_page_selenium, login_page_selenium):
-    # 1. Otwieramy i logujemy się
+    print("\n[STEP] Open login page and authenticate user")
     home_page_selenium.open_login_page()
     login_page_selenium.login_as_admin()
 
-    # 2. Czekamy na załadowanie strony głównej po zalogowaniu
+    print("[STEP] Wait for home page URL after login")
     home_page_selenium.wait_for_url(home_page_selenium.HOME_PAGE_URL)
 
-    # 3. Sprawdzamy czy tytuł jest poprawny (zgodnie z nazwą testu)
+    print("[ASSERT] Validate home page title")
     actual_title = home_page_selenium.get_title()
     expected_title = "Home Page - Web"
-    assert expected_title in actual_title, f"Błąd! Oczekiwano '{expected_title}', a otrzymano '{actual_title}'"
+    assert expected_title in actual_title, (
+        f"Expected title containing '{expected_title}', got '{actual_title}'"
+    )
+    print("[DONE] Home page title test passed")
