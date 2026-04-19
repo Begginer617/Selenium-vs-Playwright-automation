@@ -110,7 +110,7 @@ class BasePage:
     def get_text(self, locator):
         return self.wait_for_visible(locator).text
 
-    def open(self, url, retries=2):
+    def open(self, url, retries=3):
         last_exception = None
         for attempt in range(retries):
             try:
@@ -127,8 +127,13 @@ class BasePage:
                     self.driver.execute_script("window.stop();")
                 except Exception:
                     pass
+                try:
+                    # Reset page context before next attempt to reduce repeated renderer stalls.
+                    self.driver.get("about:blank")
+                except Exception:
+                    pass
                 if attempt < retries - 1:
-                    time.sleep(0.5)
+                    time.sleep(1)
                     continue
         raise last_exception
 
