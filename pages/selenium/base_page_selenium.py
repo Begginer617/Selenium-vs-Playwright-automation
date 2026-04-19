@@ -1,4 +1,3 @@
-import time
 import allure
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,7 +12,7 @@ from selenium.common.exceptions import (
 
 class BasePage:
 
-    def __init__(self, driver, timeout=8, poll_frequency=0.2):
+    def __init__(self, driver, timeout=6, poll_frequency=0.15):
         self.driver = driver
         self.default_timeout = timeout
         self.poll_frequency = poll_frequency
@@ -97,7 +96,8 @@ class BasePage:
             except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException) as exc:
                 last_exception = exc
                 if attempt < retries - 1:
-                    time.sleep(0.2)
+                    # Re-check clickability quickly without fixed sleeps.
+                    self.wait_for_clickable(locator, timeout=1.5)
                     continue
         self._attach_screenshot("safe_click_error")
         raise TimeoutException(f"Failed to click element after {retries} attempts: {locator}") from last_exception
@@ -110,12 +110,12 @@ class BasePage:
     def get_text(self, locator):
         return self.wait_for_visible(locator).text
 
-    def open(self, url, retries=4):
+    def open(self, url, retries=2):
         last_exception = None
         for attempt in range(retries):
             try:
                 self.driver.get(url)
-                self.wait_for_page_load(timeout=10)
+                self.wait_for_page_load(timeout=6)
                 return
             except (TimeoutException, WebDriverException) as exc:
                 last_exception = exc
@@ -144,7 +144,6 @@ class BasePage:
                 except Exception:
                     pass
                 if attempt < retries - 1:
-                    time.sleep(0.5)
                     continue
         raise last_exception
 
