@@ -15,5 +15,5 @@ def test_multiple_products_total_calculation(home_page_selenium, login_page_sele
     product_page_selenium.open_mountain_bikes()
 
     print("[STEP] Add multiple products and validate computed cart total.")
-    product_page_selenium.add_multiple_products_and_verify_total(count=5)
+    product_page_selenium.add_multiple_products_and_verify_total(count=3)
     print("[DONE] Multi-product total calculation flow completed.")

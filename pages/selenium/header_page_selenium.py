@@ -33,7 +33,7 @@ class HeaderPage(BasePage):
         return self.driver.current_url
 
     def assert_url_contains(self, expected_fragment):
-        self.wait_for_url(expected_fragment, timeout=10)
+        self.wait_for_url(expected_fragment, timeout=5)
         current_url = self.get_url()
         assert expected_fragment in current_url, (
             f"Expected URL containing '{expected_fragment}', got '{current_url}'"

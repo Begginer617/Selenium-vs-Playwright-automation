@@ -12,7 +12,7 @@ from selenium.common.exceptions import (
 
 class BasePage:
 
-    def __init__(self, driver, timeout=4, poll_frequency=0.15):
+    def __init__(self, driver, timeout=2, poll_frequency=0.15):
         self.driver = driver
         self.default_timeout = timeout
         self.poll_frequency = poll_frequency
