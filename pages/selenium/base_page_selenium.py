@@ -110,7 +110,7 @@ class BasePage:
     def get_text(self, locator):
         return self.wait_for_visible(locator).text
 
-    def open(self, url, retries=3):
+    def open(self, url, retries=4):
         last_exception = None
         for attempt in range(retries):
             try:
@@ -119,6 +119,17 @@ class BasePage:
                 return
             except (TimeoutException, WebDriverException) as exc:
                 last_exception = exc
+                current_url = ""
+                try:
+                    current_url = self.driver.current_url
+                except Exception:
+                    pass
+                # If renderer timed out but browser already navigated to target page, continue test.
+                if current_url and url in current_url:
+                    self.log_warn(
+                        f"Navigation timeout occurred but URL is already reached: '{current_url}'. Continuing."
+                    )
+                    return
                 self.log_warn(
                     f"Navigation attempt {attempt + 1}/{retries} failed for '{url}': {exc}"
                 )
@@ -133,7 +144,7 @@ class BasePage:
                 except Exception:
                     pass
                 if attempt < retries - 1:
-                    time.sleep(1)
+                    time.sleep(0.5)
                     continue
         raise last_exception
 
