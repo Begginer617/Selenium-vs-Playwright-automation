@@ -22,6 +22,7 @@ class ProductPagePw(BasePagePw):
     PRODUCT_CARDS = "//div[contains(@class, 'k-card') and not(contains(@class, 'k-card-list'))]"
     DISCOUNT_BADGE = "//span[@class='discount-pct']"
 
+
     # Sorting
     SORT_TRIGGER = "//span[contains(@class, 'k-input-value-text')]"
     SORT_OPTION_PRICE_DESC = "text=Price - High to Low"
@@ -33,7 +34,7 @@ class ProductPagePw(BasePagePw):
     ADD_TO_CART_BTN = "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])"
     CART_TOTAL_PRICE = "subTotalValue"
     ALL_ADD_BUTTONS = "add-to-cart"
-
+    CART_LINE_PRICES_PW = "//td[contains(@class, 'final-price')]"
 
 
     """ACTIONS AND ASSERTIONS"""
@@ -73,6 +74,21 @@ class ProductPagePw(BasePagePw):
         count = int(text.split("of")[-1].strip().split(" ")[0])
         self.log_info(f"Parsed pager count: {count}")
         return count
+
+    def get_cart_line_item_prices_pw(self):
+        """Pobiera wszystkie ceny jednostkowe z tabeli koszyka."""
+        self.log_info("[POM] Pobieram ceny poszczególnych produktów z koszyka...")
+        price_locators = self.page.locator(self.CART_LINE_PRICES_PW)
+
+        # Wyciągamy teksty, czyścimy i zamieniamy na float
+        raw_texts = price_locators.all_inner_texts()
+        prices = []
+        for text in raw_texts:
+            clean_price = float(text.replace('$', '').replace(',', '').strip())
+            prices.append(clean_price)
+
+        self.log_info(f"[POM] Znalezione ceny w koszyku: {prices}")
+        return prices
 
     def assert_expected_bike_categories_pw(self, expected_titles=None):
         titles = self.get_bike_category_titles_pw()
@@ -201,38 +217,48 @@ class ProductPagePw(BasePagePw):
         self.log_done("Sorting sequence finished")
 
     def add_multiple_products_and_verify_total_pw(self, count=5):
+        """Adds N products to cart and validates that subtotal matches line items and original prices."""
         self.log_step(f"Starting total-price validation for {count} products")
 
-        # Collect all visible prices from product cards.
+        # 1. Capture prices from the shop floor
         all_prices = self.get_all_prices_pw()
-
         if len(all_prices) < count:
-            raise Exception(
-                f"Found only {len(all_prices)} products on page, but {count} are required."
-            )
+            raise Exception(f"Found only {len(all_prices)} products, need {count}")
 
-        # Calculate expected subtotal based on selected products.
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
-        self.log_info(f"Selected prices: {selected_prices}, expected total: ${expected_total:.2f}")
+        self.log_info(f"Expected total based on shop cards: ${expected_total:.2f}")
 
-        # Add selected products to cart.
-        add_buttons = self.page.locator(f"xpath={self.ADD_TO_CART_BTN}")
-
+        # 2. Add products to cart
+        add_buttons = self.page.locator(self.ADD_TO_CART_BTN)
         for i in range(count):
             self.log_step(f"Adding product {i + 1}/{count}")
             add_buttons.nth(i).click()
-            self.page.wait_for_timeout(200)  # Small delay for cart update animation.
+            # Small delay to allow Kendo UI animations to trigger
+            self.page.wait_for_timeout(300)
 
-        # Navigate to cart.
+        # 3. Go to Cart
         self.go_to_cart_pw()
 
-        # Verify subtotal value in cart.
-        total_element = self.page.locator(f"#{self.CART_TOTAL_PRICE}")
-        expect(total_element).to_be_visible()
+        # 4. Read Subtotal from the UI
+        total_text = self.page.locator(f"#{self.CART_TOTAL_PRICE}").inner_text()
+        actual_total = float(total_text.replace('$', '').replace(',', '').strip())
 
-        actual_total = float(total_element.inner_text().replace('$', '').replace(',', '').strip())
+        # 5. Read individual line prices from the table
+        cart_line_prices = self.get_cart_line_item_prices_pw()
+        cart_line_sum = sum(cart_line_prices)
 
-        self.log_assert(f"Cart total is ${actual_total:.2f}")
-        assert round(actual_total, 2) == round(expected_total, 2)
-        self.log_done("Cart total matches expected value")
+        # Logging for Allure/Console
+        self.log_assert(f"Expected Sum (Cards): ${expected_total:.2f}")
+        self.log_assert(f"Cart Line Sum: ${cart_line_sum:.2f}")
+        self.log_assert(f"Cart Subtotal: ${actual_total:.2f}")
+
+        # Final Validations
+        assert round(cart_line_sum, 2) == round(actual_total, 2), \
+            f"Line items sum ({cart_line_sum}) does not match subtotal ({actual_total})"
+
+        assert round(actual_total, 2) == round(expected_total, 2), \
+            f"Subtotal ({actual_total}) does not match original card prices ({expected_total})"
+
+        self.log_done("Cart totals and line items verified successfully")
+        return self
