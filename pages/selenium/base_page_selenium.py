@@ -2,50 +2,79 @@ import time
 import allure
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    ElementClickInterceptedException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+    TimeoutException,
+)
 
 
 class BasePage:
 
-    def __init__(self, driver, timeout=5):
+    def __init__(self, driver, timeout=8, poll_frequency=0.2):
         self.driver = driver
-        self.wait = WebDriverWait(driver, timeout)
+        self.default_timeout = timeout
+        self.poll_frequency = poll_frequency
+        self.wait = self._build_wait(timeout)
+
+    def _build_wait(self, timeout):
+        return WebDriverWait(
+            self.driver,
+            timeout,
+            poll_frequency=self.poll_frequency,
+            ignored_exceptions=(NoSuchElementException, StaleElementReferenceException),
+        )
+
+    def _wait(self, condition, timeout=None):
+        effective_timeout = timeout if timeout is not None else self.default_timeout
+        return self._build_wait(effective_timeout).until(condition)
 
     # ---------- WAIT HELPERS ----------
-    def wait_for_visible(self, locator):
-        return self.wait.until(EC.visibility_of_element_located(locator))
+    def wait_for_visible(self, locator, timeout=None):
+        return self._wait(EC.visibility_of_element_located(locator), timeout)
 
-    def wait_for_clickable(self, locator):
-        return self.wait.until(EC.element_to_be_clickable(locator))
+    def wait_for_clickable(self, locator, timeout=None):
+        return self._wait(EC.element_to_be_clickable(locator), timeout)
 
-    def wait_for_url(self, url):
-        return self.wait.until(EC.url_contains(url))
+    def wait_for_url(self, url, timeout=None):
+        return self._wait(EC.url_contains(url), timeout)
 
-    def wait_for_all_visible(self, locator):
-        return self.wait.until(EC.visibility_of_all_elements_located(locator))
+    def wait_for_all_visible(self, locator, timeout=None):
+        return self._wait(EC.visibility_of_all_elements_located(locator), timeout)
+
+    def wait_for_presence(self, locator, timeout=None):
+        return self._wait(EC.presence_of_element_located(locator), timeout)
+
+    def wait_for_all_present(self, locator, timeout=None):
+        return self._wait(EC.presence_of_all_elements_located(locator), timeout)
 
     def wait_for_page_load(self, timeout=10):
         try:
-            WebDriverWait(self.driver, timeout).until(
+            self._build_wait(timeout).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
             )
         except TimeoutException:
-            # Nie rzucamy błędu - często strona działa, mimo że jakiś skrypt w tle wisi
-            print("Timeout czekania na status 'complete', kontynuuję test...")
+            # Do not fail hard here; some apps remain usable while background scripts are still running.
+            print("Timed out waiting for document.readyState='complete'; continuing test.")
 
     # ---------- ACTIONS ----------
     def click(self, locator):
         self.wait_for_clickable(locator).click()
 
     def safe_click(self, locator, retries=2):
-        for _ in range(retries):
+        last_exception = None
+        for attempt in range(retries):
             try:
                 self.wait_for_clickable(locator).click()
                 return
-            except Exception:
-                time.sleep(0.3)
+            except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException) as exc:
+                last_exception = exc
+                if attempt < retries - 1:
+                    time.sleep(0.2)
+                    continue
         self._attach_screenshot("safe_click_error")
-        raise
+        raise TimeoutException(f"Failed to click element after {retries} attempts: {locator}") from last_exception
 
     def type(self, locator, text):
         element = self.wait_for_visible(locator)
@@ -53,15 +82,11 @@ class BasePage:
         element.send_keys(text)
 
     def get_text(self, locator):
-        self.wait_for_visible(locator).text
+        return self.wait_for_visible(locator).text
 
     def open(self, url):
-        try:
-            self.driver.get(url)
-            # Zamiast twardego czekania, dajemy szansę na załadowanie się DOM
-            self.wait_for_page_load(timeout=7)
-        except TimeoutException:
-            print(f"Strona {url} ładowała się zbyt długo.")
+        self.driver.get(url)
+        self.wait_for_page_load(timeout=7)
 
     def scroll_to(self, locator, offset=-150):
         element = self.wait_for_visible(locator)
