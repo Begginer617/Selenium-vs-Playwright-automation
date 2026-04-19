@@ -1,4 +1,6 @@
 import re
+
+import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
@@ -53,15 +55,10 @@ class ProductsPage(BasePage):
         By.XPATH,
         "//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'cart is empty')]",
     )
+
     CART_LINE_ITEM_PRICES = (
         By.XPATH,
-        "//p[normalize-space()='Remove']"
-        "/ancestor::*[contains(@class, 'k-card') or contains(@class, 'cart-item')][1]"
-        "//*[contains(@class, 'card-price')]"
-        " | "
-        "//button[contains(@class, 'remove-product') or normalize-space()='Remove']"
-        "/ancestor::*[contains(@class, 'k-card') or contains(@class, 'cart-item')][1]"
-        "//*[contains(@class, 'card-price')]",
+        "//td[contains(@class, 'final-price')] | //span[contains(@class, 'card-price')]"
     )
 
     CART_TOTAL_PRICE = (By.ID, "subTotalValue")
@@ -188,7 +185,7 @@ class ProductsPage(BasePage):
                 return int(text)
         return 0
 
-    def _wait_for_cart_count_increment(self, previous_count, timeout=5):
+    def _wait_for_cart_count_increment(self, previous_count, timeout=2):
         self._wait(lambda d: self._current_cart_count() > previous_count, timeout=timeout)
 
     def _get_remove_buttons(self):
@@ -341,29 +338,40 @@ class ProductsPage(BasePage):
         return float(match.group(1).replace(",", ""))
 
     def get_cart_line_item_prices(self):
-        """Collect prices from cart line items and return parsed floats."""
-        price_elements = self.driver.find_elements(*self.CART_LINE_ITEM_PRICES)
-        if not price_elements:
-            # Fallback for cart templates that do not expose remove controls as expected.
-            price_elements = self.driver.find_elements(
-                By.XPATH,
-                "//div[contains(@class, 'cart-item') or contains(@class, 'k-card')]"
-                "//*[contains(@class, 'card-price')]",
-            )
+        self.log_info("[POM] Pobieram ceny produktów z koszyka...")
+
+        # Używamy wait_for_all_visible, bo find_elements nie czeka i często zwraca [] przy asynchronicznym UI
+        try:
+            # Zakładam, że CART_LINE_ITEM_PRICES to ten poprawiony, prostszy lokator
+            price_elements = self.wait_for_all_visible(self.CART_LINE_ITEM_PRICES, timeout=7)
+        except Exception as e:
+            self.log_warn(f"[POM] Timeout przy czekaniu na ceny: {e}. Próbuję pobrać co jest dostępne...")
+            price_elements = self.driver.find_elements(*self.CART_LINE_ITEM_PRICES)
 
         prices = []
         for element in price_elements:
-            text = element.text.strip()
-            if not text:
-                continue
             try:
-                prices.append(self._parse_price_text(text))
-            except ValueError:
+                # Pobieramy tekst tylko od widocznych elementów
+                if element.is_displayed():
+                    text = element.text.strip()
+                    if text:
+                        prices.append(self._parse_price_text(text))
+            except Exception as e:
+                self.log_warn(f"[POM] Błąd przy parsowaniu ceny pojedynczego elementu: {e}")
                 continue
 
         if not prices:
-            raise AssertionError("Could not read any cart line-item prices for subtotal validation.")
+            # Screenshot w Allure to złoto przy debugowaniu
+            allure.attach(
+                self.driver.get_screenshot_as_png(),
+                name="failed_cart_prices_view",
+                attachment_type=allure.attachment_type.PNG
+            )
+            # Logujemy HTML, żebyś widział w raporcie, co Selenium faktycznie "widziało" w DOMie
+            allure.attach(self.driver.page_source, name="page_source", attachment_type=allure.attachment_type.TEXT)
+            raise AssertionError("Nie znaleziono żadnych cen produktów w koszyku!")
 
+        self.log_info(f"[POM] Odczytano {len(prices)} cen: {prices}")
         return prices
 
     def get_total_count_from_pager(self):

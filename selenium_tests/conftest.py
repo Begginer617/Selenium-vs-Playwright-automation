@@ -73,8 +73,8 @@ def driver(request):
 
     # 3. Initialize driver.
     driver = DriverFactory.get_driver(run_remote=remote_opt, options=options)
-    driver.set_page_load_timeout(12)
-    driver.implicitly_wait(0)
+    driver.set_page_load_timeout(4)
+    driver.implicitly_wait(3)
     with contextlib.suppress(Exception):
         driver.maximize_window()
     yield driver

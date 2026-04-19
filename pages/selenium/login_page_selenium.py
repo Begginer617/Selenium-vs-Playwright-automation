@@ -34,7 +34,7 @@ class LoginPage(BasePage):
             try:
                 self._wait(
                     lambda d: self.LOGIN_PAGE_URL_FRAGMENT not in d.current_url,
-                    timeout=20,
+                    timeout=10,
                 )
                 self._wait(
                     lambda d: "Home Page" in d.title

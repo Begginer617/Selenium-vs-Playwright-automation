@@ -55,7 +55,7 @@ class RegistrationPagePw:
     def get_text_pw(self, selector):
         return self.page.locator(selector).first.text_content()
 
-    def expect_visible_pw(self, selector, timeout_ms=8000):
+    def expect_visible_pw(self, selector, timeout_ms=4000):
         expect(self.page.locator(selector).first).to_be_visible(timeout=timeout_ms)
 
     def expect_required_errors_pw(self):

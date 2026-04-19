@@ -10,4 +10,4 @@ class Config:
     USER_PASSWORD = "User1234"
 
     # Timeouty
-    DEFAULT_TIMEOUT = 10
+    DEFAULT_TIMEOUT = 5
