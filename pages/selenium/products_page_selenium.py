@@ -214,6 +214,13 @@ class ProductsPage(BasePage):
         elements = self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES)
         return [el.text.strip() for el in elements]
 
+    def assert_expected_bike_categories(self, expected_titles=None):
+        titles = self.get_bike_category_titles()
+        print(f"Bike categories found: {titles}")
+        expected = expected_titles or ["Mountain Bikes", "Road Bikes", "Touring Bikes"]
+        for expected_title in expected:
+            assert expected_title in titles, f"Expected category '{expected_title}' in {titles}"
+
     """# --- METODY: LICZENIE (COUNTERS) ---"""
 
     def count_visible_bikes(self):
@@ -277,3 +284,34 @@ class ProductsPage(BasePage):
                 assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania nazw: {option_name}"
 
             print(f"✅ Sukces: Sortowanie '{option_name}' działa poprawnie!")
+
+    def assert_products_available_for_all_filter(self):
+        self.click(self.ALL_BIKES_FILTER)
+        self.wait_for_page_load(2)
+        all_items_count = self.get_total_count_from_pager()
+        assert all_items_count > 0, f"Expected all-items count > 0, got {all_items_count}"
+        return all_items_count
+
+    def assert_discounted_filter_consistency(self, expected_all_count=None):
+        self.click(self.DISCOUNTED_BIKES_FILTER)
+        self.wait_for_page_load(2)
+        discounted_pager_count = self.get_total_count_from_pager()
+        discounted_badges_count = self.count_badges()
+        discounted_cards_count = self.count_visible_bikes()
+        if expected_all_count is not None:
+            assert discounted_pager_count <= expected_all_count, (
+                f"Expected discounted count ({discounted_pager_count}) <= all items ({expected_all_count})"
+            )
+        assert discounted_pager_count > 0, (
+            f"Expected discounted pager count > 0, got {discounted_pager_count}"
+        )
+        assert discounted_badges_count == discounted_pager_count, (
+            f"Expected discounted badges ({discounted_badges_count}) to match pager ({discounted_pager_count})"
+        )
+        assert discounted_cards_count == discounted_pager_count, (
+            f"Expected discounted cards ({discounted_cards_count}) to match pager ({discounted_pager_count})"
+        )
+
+    def assert_filter_counts_consistent(self):
+        all_items_count = self.assert_products_available_for_all_filter()
+        self.assert_discounted_filter_consistency(expected_all_count=all_items_count)
