@@ -4,76 +4,76 @@ from pages.selenium.base_page_selenium import BasePage
 
 
 class ProductsPage(BasePage):
-    """KONSTANTY I LINKI"""
+    """Constants and links."""
     BIKE_MAIN_LINK = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
 
-    """# --- LOKATORY: KATEGORIE ---"""
+    """Category locators."""
     BIKE_CATEGORY_TITLES = (By.XPATH, "//div[@class='category-heading']")
     MOUNTAINS_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Mountain Bikes')]")
     ROAD_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Road Bikes')]")
     TOURING_BIKES_CATEGORY = (By.XPATH, "//a[contains(@href, 'subCategory=Touring Bikes')]")
 
-    """# --- LOKATORY: FILTRY ---"""
-    # Radio Buttony (do sprawdzania stanu)
+    """Filter locators."""
+    # Radio buttons (state checks)
     DISCOUNTED_BIKES_RADIO_BUTTON = (By.XPATH, "//input[@type='radio' and @value='2']")
     ALL_BIKES_RADIO_BUTTON = (By.XPATH, "//input[@name='discountPicker' and @value='1']")
 
-    """# Etykiety (do klikania)"""
+    """Filter labels (click targets)."""
     DISCOUNTED_BIKES_FILTER = (By.XPATH, "//label[contains(text(), 'Discounted items only')]")
     ALL_BIKES_FILTER = (By.XPATH, "//label[contains(text(), 'All')]")
 
-    """# Elementy na karcie produktu"""
+    """Product card elements."""
     DISCOUNT_PERCENT_BADGE = (By.XPATH, "//span[@class='discount-pct']")
     PRODUCT_CARD = (By.XPATH, "//div[contains(@class, 'k-card')]")
     PAGER_INFO = (By.XPATH, "//span[@class='k-pager-info']")
 
-    """# --- LOKATORY: SORTOWANIE ---"""
+    """Sorting locators."""
     SORT_DROPDOWN_TRIGGER = (By.XPATH, "//span[contains(@class, 'k-input-value-text')]")
     SORT_FILTER_LOW_TO_HIGH = (By.XPATH, "//span[@class='k-list-item-text' and text()='Price - Low to High']")
     SORT_FILTER_HIGH_TO_LOW = (By.XPATH, "//span[@class='k-list-item-text' and text()='Price - High to Low']")
     SORT_FILTER_A_TO_Z = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - A to Z']")
     SORT_FILTER_Z_TO_A = (By.XPATH, "//span[@class='k-list-item-text' and text()='Name - Z to A']")
 
-    """# --- LOKATORY: KOSZYK ---"""
-    # Przycisk "Add to Cart" na karcie produktu (pierwszy z brzegu)
+    """Cart locators."""
+    # "Add to Cart" on the first product card
     ADD_TO_CART_BUTTON = (By.XPATH, "(//button[contains(@class, 'add-to-cart') or contains(text(), 'Add to Cart')])[1]")
 
-    # Ikona koszyka/przycisk przejścia do koszyka
+    # Cart icon / navigation button
     CART_ICON = (By.XPATH, "//a[contains(@href, 'Cart')]")
 
-    # Elementy wewnątrz koszyka
+    # Elements inside cart
     CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
 
-    # Przycisk usuwania w koszyku (wszystkie widoczne)
+    # Remove buttons in cart (all visible)
     REMOVE_ITEM_BUTTONS = (By.XPATH, "//p[text()='Remove']")
-    # Tekst informujący o pustym koszyku (opcjonalnie)
+    # Optional empty-cart message
     EMPTY_CART_MESSAGE = (By.XPATH, "//div[contains(text(), 'Your cart is empty')]")
 
     CART_TOTAL_PRICE = (By.ID, "subTotalValue")
     ALL_ADD_BUTTONS = (By.CLASS_NAME, "add-to-cart")
 
 
-    """# --- Metody: KOSZYK ---"""
+    """Cart actions."""
 
     def add_first_product_to_cart_and_verify(self):
-        """Dodaje pierwszy produkt do koszyka i sprawdza czy tam jest"""
-        # 1. Pobierz nazwę pierwszego produktu
+        """Add first product to cart and verify it is present."""
+        # 1. Capture first product name
         product_name = self.get_all_names()[0]
         self.log_info(f"Trying to add product: {product_name}")
 
-        # 2. Kliknij Add to Cart
+        # 2. Click Add to Cart
         self.click(self.ADD_TO_CART_BUTTON)
-        time.sleep(2)  # Kendo potrzebuje chwili na animację "fly-to-cart"
+        time.sleep(2)  # Kendo needs a moment for fly-to-cart animation.
 
-        # 3. Przejdź do koszyka
+        # 3. Open cart
         self.click(self.CART_ICON)
-        # Czekamy aż URL się zmieni na /Cart lub pojawi się kontener koszyka
+        # Wait for cart navigation/container to render.
         self.wait_for_page_load(3)
 
-        # 4. Sprawdź czy nazwa w koszyku się zgadza
+        # 4. Verify product name inside cart
         CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
 
-        # Używamy wait_for_all_visible zamiast find_elements, żeby uniknąć pustej listy []
+        # Use wait_for_all_visible to avoid unstable empty list reads.
         try:
             elements = self.wait_for_all_visible(CART_ITEM_TITLES)
             cart_names = [el.text.strip() for el in elements]
@@ -82,61 +82,62 @@ class ProductsPage(BasePage):
 
         self.log_info(f"Cart items found: {cart_names}")
 
-        assert product_name in cart_names, f"BŁĄD: Produktu {product_name} nie ma w koszyku! Znaleziono: {cart_names}"
+        assert product_name in cart_names, (
+            f"ERROR: Product '{product_name}' not found in cart. Found: {cart_names}"
+        )
 
     def add_multiple_products_and_verify_total(self, count=5):
-        """Dodaje X produktów i weryfikuje sumę cen w koszyku"""
+        """Add N products and verify total cart value."""
         self.log_step(f"Starting cart total validation for {count} products")
 
         all_prices = self.get_all_prices()
-        # Wybieramy pierwsze 'count' produktów z listy
+        # Use first N products from the list.
         selected_prices = all_prices[:count]
         expected_total = sum(selected_prices)
 
-        # Dodawanie produktów
+        # Add products
         add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
         for i in range(count):
             self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
             add_buttons[i].click()
             time.sleep(1)
 
-        # Idź do koszyka
+        # Open cart
         self.click(self.CART_ICON)
 
-        # CZEKANIE: Zamiast driver.find_element, używamy metody z BasePage (jeśli ją masz)
-        # lub bezpośrednio WebDriverWait
+        # Wait for cart total to settle before reading value.
         self.log_step("Waiting for cart total recalculation")
         time.sleep(3)
 
         try:
-            # Szukamy elementu sumy
+            # Read total value element
             total_element = self.driver.find_element(*self.CART_TOTAL_PRICE)
             actual_total_text = total_element.text
             self.log_info(f"Raw cart total text: '{actual_total_text}'")
 
-            # Konwersja "$1,234.56" -> 1234.56
+            # Convert "$1,234.56" -> 1234.56
             actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
         except Exception as e:
-            # Jeśli padnie, zrób zrzut nazw klas dostępnych na stronie, żebyśmy wiedzieli co jest nie tak
+            # Preserve context if total cannot be parsed.
             self.log_error(f"Failed to read cart total: {e}")
             raise
 
         self.log_assert(f"Expected total: ${expected_total:.2f}")
         self.log_assert(f"Actual total: ${actual_total:.2f}")
 
-        # Używamy round(), bo floaty w Pythonie bywają kapryśne (np. 0.1 + 0.2 != 0.3)
+        # Use round() to avoid float precision artifacts.
         assert round(actual_total, 2) == round(expected_total, 2), \
-            f"BŁĄD SUMY! Jest {actual_total}, powinno być {expected_total}"
+            f"TOTAL ERROR: got {actual_total}, expected {expected_total}"
         self.log_done("Cart total is correct")
 
     def clear_cart(self):
-        """Pancerny sposób na wyczyszczenie koszyka z obsługą Alertów"""
+        """Robust cart cleanup with alert handling."""
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
         time.sleep(2)
 
         while True:
-            # Pobieramy świeżą listę guzików
+            # Fetch a fresh list of remove buttons each iteration.
             buttons = self.driver.find_elements(By.CLASS_NAME, "remove-product")
 
             if not buttons:
@@ -146,14 +147,14 @@ class ProductsPage(BasePage):
             self.log_step(f"Removing product, remaining entries: {len(buttons)}")
             try:
                 buttons[0].click()
-                time.sleep(1)  # Czekamy ułamek sekundy na pojawienie się alertu
+                time.sleep(1)  # Allow confirm alert to appear.
 
-                # --- KLUCZOWY MOMENT: Obsługa Alertu ---
+                # Handle removal confirmation alert.
                 alert = self.driver.switch_to.alert
                 self.log_info(f"Accepting alert: {alert.text}")
                 alert.accept()
 
-                # Czekamy na przeładowanie się koszyka po usunięciu
+                # Wait for cart refresh after removal.
                 time.sleep(1.5)
             except Exception as e:
                 self.log_warn(f"Stopped removal loop or missing alert: {e}")
@@ -164,24 +165,24 @@ class ProductsPage(BasePage):
 
 
 
-    """# --- METODY: NAWIGACJA ---"""
+    """Navigation methods."""
 
     def open_bikes_main_link(self):
-        """Otwiera stronę główną rowerów"""
+        """Open bikes landing page."""
         self.open("https://demos.telerik.com/kendo-ui/eshop")
         time.sleep(1)
         self.open(self.BIKE_MAIN_LINK)
         time.sleep(1)
 
     def open_mountain_bikes(self):
-        """Wchodzi w kategorię Mountain Bikes"""
+        """Open Mountain Bikes category."""
         self.click(self.MOUNTAINS_BIKES_CATEGORY)
         time.sleep(2)
 
-    """# --- METODY: POBIERANIE DANYCH (GETTERS) ---"""
+    """Data getters."""
 
     def get_all_prices(self):
-        """Pobiera wszystkie ceny i zamienia na float"""
+        """Collect all product prices and convert to float."""
         PRICE_LOCATOR = (By.XPATH, "//div[@class='card-price']")
         elements = self.driver.find_elements(*PRICE_LOCATOR)
         prices = []
@@ -192,25 +193,25 @@ class ProductsPage(BasePage):
         return prices
 
     def get_all_names(self):
-        """Pobiera wszystkie nazwy produktów"""
+        """Collect all product names."""
         NAME_LOCATOR = (By.XPATH, "//div[@class='k-card-title']")
         elements = self.driver.find_elements(*NAME_LOCATOR)
         return [el.text.strip() for el in elements if el.text]
 
     def get_all_discount_labels(self):
-        """Pobiera teksty z plakietek rabatowych (np. '20% off')"""
+        """Collect discount badge labels (e.g., '20% off')."""
         elements = self.driver.find_elements(*self.DISCOUNT_PERCENT_BADGE)
         return [el.text.strip() for el in elements if el.text]
 
     def get_total_count_from_pager(self):
-        """Wyciąga łączną liczbę przedmiotów z pagera (np. 32)"""
+        """Extract total item count from pager text."""
         text_info = self.driver.find_element(*self.PAGER_INFO).text
-        # Split: ['1', '-', '12', 'of', '32', 'items'] -> bierzemy index 4
+        # Split example: ['1', '-', '12', 'of', '32', 'items'] -> index 4
         parts = text_info.split()
         return int(parts[4])
 
     def get_bike_category_titles(self):
-        """Pobiera teksty z nagłówków kategorii (Mountain, Road, Touring)"""
+        """Collect text for bike category headers."""
         elements = self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES)
         return [el.text.strip() for el in elements]
 
@@ -221,44 +222,44 @@ class ProductsPage(BasePage):
         for expected_title in expected:
             assert expected_title in titles, f"Expected category '{expected_title}' in {titles}"
 
-    """# --- METODY: LICZENIE (COUNTERS) ---"""
+    """Counter helpers."""
 
     def count_visible_bikes(self):
-        """Zlicza kafelki, które mają widoczny tekst tytułu"""
-        # Szukamy tytułów wewnątrz kart
+        """Count cards with non-empty visible title text."""
+        # Read title elements inside cards.
         titles = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'k-card')]//div[@class='k-card-title']")
 
-        # Liczymy tylko te, które faktycznie mają jakiś tekst (nie są puste)
+        # Count only entries with non-empty text.
         visible_titles = [t for t in titles if t.text.strip() != ""]
 
         return len(visible_titles)
 
     def count_badges(self):
-        """Zlicza plakietki procentowe widoczne na ekranie"""
+        """Count discount percentage badges visible on screen."""
         return len(self.get_all_discount_labels())
 
-    """# --- METODY: TESTOWE (AKCJE I WERYFIKACJA) ---"""
+    """Validation helpers."""
 
     def verify_discount_filter(self):
-        """KLUCZOWY TEST: Sprawdza czy filtr rabatów działa uczciwie"""
+        """Validate discounted filter consistency."""
         self.log_step("Applying discounted-items filter")
         self.click(self.DISCOUNTED_BIKES_FILTER)
-        time.sleep(2)  # Czekamy na przeładowanie listy
+        time.sleep(2)  # Wait for list reload.
 
         bikes_count = self.count_visible_bikes()
         badges_count = self.count_badges()
 
         self.log_info(f"Discount filter debug: products={bikes_count}, badges={badges_count}")
 
-        assert bikes_count > 0, "BŁĄD: Filtr nie zwrócił żadnych wyników!"
+        assert bikes_count > 0, "ERROR: Discount filter returned no results."
         assert bikes_count == badges_count, (
-            f"BŁĄD FILTRA! Wyświetlono {bikes_count} produktów, "
-            f"ale tylko {badges_count} ma plakietkę rabatu."
+            f"FILTER ERROR: displayed {bikes_count} products, "
+            f"but only {badges_count} has a discount badge."
         )
         self.log_done("All visible products have discount badges")
 
     def all_sorting_options(self):
-        """Testuje po kolei wszystkie opcje sortowania"""
+        """Validate all sorting options one-by-one."""
         scenarios = [
             (self.SORT_FILTER_A_TO_Z, "name_asc"),
             (self.SORT_FILTER_Z_TO_A, "name_desc"),
@@ -277,11 +278,11 @@ class ProductsPage(BasePage):
             if "Price" in option_name:
                 actual = self.get_all_prices()
                 is_desc = (sort_type == "price_desc")
-                assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania cen: {option_name}"
+                assert actual == sorted(actual, reverse=is_desc), f"Price sorting error: {option_name}"
             elif "Name" in option_name:
                 actual = self.get_all_names()
                 is_desc = (sort_type == "name_desc")
-                assert actual == sorted(actual, reverse=is_desc), f"Błąd sortowania nazw: {option_name}"
+                assert actual == sorted(actual, reverse=is_desc), f"Name sorting error: {option_name}"
 
             self.log_done(f"Sorting '{option_name}' works correctly")
 
