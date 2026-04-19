@@ -12,7 +12,7 @@ class HomePagePw(BasePagePw):
     CATEGORY_BIKES_URL = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
 
     # --- LOKATORY ---
-    LOGOUT_BUTTON = "//a[contains(@class, 'k-menu-link') and text()='Logout']"
+    LOGOUT_BUTTON = "//a[contains(@href, '/Account/Logout')]"
     MAIN_LOGIN_LINK = "//button[@type='submit' and contains(., 'Login')]"
 
     """Navigation methods"""
@@ -33,17 +33,17 @@ class HomePagePw(BasePagePw):
         return self
 
     def click_logout_button_pw(self):
-        print(f"[POM] Klikam przycisk wylogowania (JS)")
+        print("[POM] Clicking logout action (JS)")
         self.js_click(self.LOGOUT_BUTTON)
         return self
 
     """Verification methods"""
 
     def is_logout_button_displayed_pw(self):
-        print(f"[POM] Sprawdzam czy przycisk wylogowania jest widoczny...")
+        print("[POM] Checking whether logout action is available...")
         is_visible = self.page.locator(self.LOGOUT_BUTTON).count() > 0
         if is_visible:
-            print(f"[SUCCESS] Przycisk wylogowania znaleziony.")
+            print("[SUCCESS] Logout action found.")
         else:
-            print(f"[WARNING] Przycisk wylogowania nie został znaleziony.")
+            print("[WARNING] Logout action was not found.")
         return is_visible
