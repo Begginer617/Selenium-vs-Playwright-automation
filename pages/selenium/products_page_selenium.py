@@ -45,10 +45,13 @@ class ProductsPage(BasePage):
     # Elements inside cart
     CART_ITEM_TITLES = (By.CSS_SELECTOR, ".cart-item-name, .k-card-title, .product-name")
 
-    # Remove buttons in cart (all visible)
-    REMOVE_ITEM_BUTTONS = (By.XPATH, "//p[text()='Remove']")
-    # Optional empty-cart message
-    EMPTY_CART_MESSAGE = (By.XPATH, "//div[contains(text(), 'Your cart is empty')]")
+    # Remove actions in cart (supports text/button variants).
+    REMOVE_ITEM_BUTTONS = (By.CSS_SELECTOR, ".remove-product")
+    # Optional empty-cart message (text differs slightly across UI variants).
+    EMPTY_CART_MESSAGE = (
+        By.XPATH,
+        "//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'cart is empty')]",
+    )
 
     CART_TOTAL_PRICE = (By.ID, "subTotalValue")
     ALL_ADD_BUTTONS = (By.CLASS_NAME, "add-to-cart")
@@ -169,20 +172,42 @@ class ProductsPage(BasePage):
     def _wait_for_cart_count_increment(self, previous_count, timeout=5):
         self._wait(lambda d: self._current_cart_count() > previous_count, timeout=timeout)
 
+    def _get_remove_buttons(self):
+        """Return visible remove controls from supported cart templates."""
+        fallback_locators = [
+            self.REMOVE_ITEM_BUTTONS,
+            (By.XPATH, "//p[normalize-space()='Remove']"),
+            (By.XPATH, "//button[contains(@class, 'remove-product') or normalize-space()='Remove']"),
+        ]
+        for locator in fallback_locators:
+            elements = self.driver.find_elements(*locator)
+            visible_elements = [el for el in elements if el.is_displayed()]
+            if visible_elements:
+                return visible_elements
+        return []
+
+    def _is_cart_empty_visible(self):
+        return len(self.driver.find_elements(*self.EMPTY_CART_MESSAGE)) > 0
+
     def clear_cart(self):
         """Robust cart cleanup with alert handling."""
         self.log_step("Starting cart cleanup")
         self.click(self.CART_ICON)
         self.wait_for_url("Cart", timeout=8)
-        self._wait(
-            lambda d: len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) > 0
-            or len(d.find_elements(*self.EMPTY_CART_MESSAGE)) > 0,
-            timeout=6,
-        )
+        try:
+            self._wait(
+                lambda d: len(self._get_remove_buttons()) > 0 or self._is_cart_empty_visible(),
+                timeout=6,
+            )
+        except TimeoutException:
+            # Some builds render cart state without explicit empty markers.
+            self.log_warn("Cart state markers were not detected; continuing as empty cart.")
+            self.open_bikes_main_link()
+            return
 
         for _ in range(30):
             # Fetch a fresh list of remove buttons each iteration.
-            buttons = self.driver.find_elements(*self.REMOVE_ITEM_BUTTONS)
+            buttons = self._get_remove_buttons()
 
             if not buttons:
                 self.log_done("Cart is empty")
@@ -205,7 +230,7 @@ class ProductsPage(BasePage):
 
             # Wait for cart refresh after removal.
             self._wait(
-                lambda d: len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) < previous_count,
+                lambda d: len(self._get_remove_buttons()) < previous_count or self._is_cart_empty_visible(),
                 timeout=6,
             )
         else:
