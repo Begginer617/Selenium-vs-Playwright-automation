@@ -6,7 +6,7 @@ class ProductPagePw(BasePagePw):
     def __init__(self, page):
         super().__init__(page)
 
-    """ LOKATORY ---"""
+    """LOCATORS"""
     BIKE_MAIN_LINK = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
     BIKE_CATEGORY_TITLES = "//div[@class='category-heading']"
     MOUNTAIN_BIKES = "//a[contains(@href, 'subCategory=Mountain Bikes')]"
@@ -17,12 +17,12 @@ class ProductPagePw(BasePagePw):
     ALL_BIKES_FILTER = "//label[contains(text(), 'All')]"
     DISCOUNTED_BIKES_FILTER = "//label[contains(text(), 'Discounted items only')]"
 
-    # Pager i karty
+    # Pager and cards
     PAGER_INFO = "//span[contains(@class, 'k-pager-info')]"
     PRODUCT_CARDS = "//div[contains(@class, 'k-card') and not(contains(@class, 'k-card-list'))]"
     DISCOUNT_BADGE = "//span[@class='discount-pct']"
 
-    # Sortowanie
+    # Sorting
     SORT_TRIGGER = "//span[contains(@class, 'k-input-value-text')]"
     SORT_OPTION_PRICE_DESC = "text=Price - High to Low"
     SORT_OPTION_PRICE_ASC = "text=Price - Low to High"
@@ -36,71 +36,92 @@ class ProductPagePw(BasePagePw):
 
 
 
-    """--- METODY ---"""
+    """ACTIONS AND ASSERTIONS"""
 
     def open_bikes_main_link_pw(self):
-        print(f"[POM] Nawiguję do strony głównej rowerów: {self.BIKE_MAIN_LINK}")
+        print(f"[POM] Navigating to bikes landing page: {self.BIKE_MAIN_LINK}")
         self.page.goto(self.BIKE_MAIN_LINK)
         return self
 
     def get_bike_category_titles_pw(self):
-        print("[POM] Pobieram tytuły kategorii rowerów...")
-        titles = self.page.locator(self.BIKE_CATEGORY_TITLES).all_inner_texts()
-        return titles
+        print("[POM] Collecting bike category titles...")
+        return self.page.locator(self.BIKE_CATEGORY_TITLES).all_inner_texts()
 
     def open_mountain_bikes_pw(self):
-        print("[POM] Klikam kategorię: Mountain Bikes")
+        print("[POM] Opening category: Mountain Bikes")
         self.page.locator(self.MOUNTAIN_BIKES).first.click()
         self.page.wait_for_load_state("networkidle")
         return self
 
     def click_filter_all_pw(self):
-        print("[POM] Nakładam filtr: All")
+        print("[POM] Applying filter: All")
         self.page.locator(self.ALL_BIKES_FILTER).click()
         self.page.wait_for_timeout(1000)
         return self
 
     def click_filter_discounted_pw(self):
-        print("[POM] Nakładam filtr: Discounted items only")
+        print("[POM] Applying filter: Discounted items only")
         self.page.locator(self.DISCOUNTED_BIKES_FILTER).click()
         self.page.wait_for_timeout(1000)
         return self
 
     def get_total_count_from_pager_pw(self):
-        print("[POM] Odczytuję liczbę produktów z pagera...")
-
-        # Czekamy, aż pager w ogóle się pojawi (max 5s, żeby nie marnować czasu)
+        print("[POM] Reading product count from pager...")
         self.page.wait_for_selector(self.PAGER_INFO, state="visible", timeout=5000)
-
-        # Pobieramy tekst
         text = self.page.locator(self.PAGER_INFO).inner_text()
-
-        # Debugging: jeśli znowu się wywali, zobaczysz w logach co tam właściwie było
-        print(f"[DEBUG] Tekst pagera: '{text}'")
-
+        print(f"[DEBUG] Pager text: '{text}'")
         count = int(text.split("of")[-1].strip().split(" ")[0])
-        print(f"[DEBUG] Wartość z pagera: {count}")
+        print(f"[DEBUG] Parsed pager count: {count}")
         return count
 
+    def assert_expected_bike_categories_pw(self, expected_titles=None):
+        titles = self.get_bike_category_titles_pw()
+        print(f"[POM] Bike categories found: {titles}")
+        expected_titles = expected_titles or ["Mountain Bikes", "Road Bikes", "Touring Bikes"]
+        for expected in expected_titles:
+            assert expected in titles, f"Expected category '{expected}' in {titles}"
+
+    def assert_products_available_for_all_filter_pw(self):
+        self.click_filter_all_pw()
+        all_count = self.get_total_count_from_pager_pw()
+        assert all_count > 0, f"Expected products for 'All' filter, got count={all_count}"
+        return all_count
+
+    def assert_discount_filter_consistency_pw(self, expected_all_count=None):
+        self.click_filter_discounted_pw()
+        actual_discounted_pager = self.get_total_count_from_pager_pw()
+        actual_badges = self.count_badges_pw()
+        visible_cards = self.count_visible_bikes_pw()
+        if expected_all_count is not None:
+            assert actual_discounted_pager <= expected_all_count, (
+                f"Discounted pager count ({actual_discounted_pager}) should not exceed all-items count "
+                f"({expected_all_count})."
+            )
+        assert actual_discounted_pager > 0, "Discount filter should return at least one product."
+        assert actual_badges == actual_discounted_pager, (
+            f"Discount badge count ({actual_badges}) should match pager count ({actual_discounted_pager})."
+        )
+        assert visible_cards == actual_discounted_pager, (
+            f"Visible discounted cards ({visible_cards}) should match pager count ({actual_discounted_pager})."
+        )
+
+    def assert_filter_counts_consistent_pw(self):
+        all_count = self.assert_products_available_for_all_filter_pw()
+        self.assert_discount_filter_consistency_pw(expected_all_count=all_count)
+
     def count_badges_pw(self):
-        # Upewniamy się, że czekamy na plakietki po załadowaniu filtra
-        # Czekamy aż pojawi się przynajmniej jedna plakietka
         self.page.wait_for_selector(self.DISCOUNT_BADGE, state="visible", timeout=5000)
         count = self.page.locator(self.DISCOUNT_BADGE).count()
-        print(f"[POM] Liczba znalezionych plakietek rabatowych: {count}")
+        print(f"[POM] Discount badge count: {count}")
         return count
 
     def debug_page_content_pw(self):
-        # Pobierz teksty wszystkich plakietek, jakie uda się znaleźć na stronie
         all_badges = self.page.locator("//span[contains(@class, 'k-badge')]").all_inner_texts()
-        print(f"[DEBUG] Znalezione plakietki na stronie: {all_badges}")
+        print(f"[DEBUG] Badges visible on page: {all_badges}")
 
     def count_visible_bikes_pw(self):
-        # Zliczamy tylko te karty, które są widoczne (nie mają display: none)
-        count = self.page.locator(self.PRODUCT_CARDS).filter(has_not=self.page.locator("text='hidden'")).count()
-        # Lub po prostu wymuś czekanie na widoczność:
         count = self.page.locator(self.PRODUCT_CARDS).filter(has=self.page.locator(".discount-pct")).count()
-        print(f"[POM] Liczba widocznych kart produktów: {count}")
+        print(f"[POM] Visible discounted cards count: {count}")
         return count
 
     def clear_cart_pw(self):
