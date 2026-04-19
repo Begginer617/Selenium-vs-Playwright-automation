@@ -57,7 +57,7 @@ docker ps
 
 - `--remote true` → run on Selenium Grid (Docker)
 - `--remote false` → run locally
-- `--headless true` → local headless execution
+- Selenium is forced to run in headed mode (non-headless) for consistent thesis comparison
 
 ### Selenium — local (headed)
 
@@ -65,16 +65,23 @@ docker ps
 python3 -m pytest selenium_tests --remote false -v
 ```
 
-### Selenium — local (headless)
-
-```bash
-python3 -m pytest selenium_tests --remote false --headless true -v
-```
-
 ### Selenium — Docker Grid (remote)
 
 ```bash
 python3 -m pytest selenium_tests --remote true -v
+```
+
+## Per-test runtime profiling
+
+`pytest.ini` now enables duration profiling by default:
+
+- `--durations=0` (show runtime for all tests)
+- `--durations-min=0.1` (highlight tests slower than 0.1s)
+
+You can still override thresholds from CLI, e.g.:
+
+```bash
+python3 -m pytest selenium_tests --durations=20 --durations-min=0.2 -v
 ```
 
 ## Playwright tests

@@ -33,8 +33,13 @@ class DriverFactory:
 def pytest_addoption(parser):
     # Allow Docker/remote execution toggle from CLI.
     parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
-    # Default to headless for faster local Selenium execution.
-    parser.addoption("--headless", action="store", default="true", help="Run browser headless: true or false")
+    # Keep CLI compatibility, but Selenium execution is always headed.
+    parser.addoption(
+        "--headless",
+        action="store",
+        default="false",
+        help="Deprecated for Selenium; suite is forced to run headed.",
+    )
 
 
 # --- Main Selenium WebDriver fixture ---
@@ -42,7 +47,12 @@ def pytest_addoption(parser):
 def driver(request):
     # 1. Read runtime options from CLI.
     remote_opt = request.config.getoption("--remote").lower() == "true"
-    headless_opt = request.config.getoption("--headless").lower() == "true"
+    requested_headless = request.config.getoption("--headless").lower() == "true"
+    if requested_headless:
+        print(
+            "[CONFIG][INFO] --headless=true is ignored for Selenium. "
+            "Running in non-headless mode."
+        )
 
     # 2. Configure Chrome options.
     options = Options()
@@ -61,8 +71,6 @@ def driver(request):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    if headless_opt:
-        options.add_argument("--headless=new")
 
     # Hide automation extensions/flags.
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -80,9 +88,8 @@ def driver(request):
     driver = DriverFactory.get_driver(run_remote=remote_opt, options=options)
     driver.set_page_load_timeout(12)
     driver.implicitly_wait(0)
-    if not headless_opt:
-        with contextlib.suppress(Exception):
-            driver.maximize_window()
+    with contextlib.suppress(Exception):
+        driver.maximize_window()
     yield driver
 
     # 4. Teardown.
