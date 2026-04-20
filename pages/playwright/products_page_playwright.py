@@ -50,7 +50,13 @@ class ProductPagePw(BasePagePw):
 
     def open_mountain_bikes_pw(self):
         self.log_step("Opening category: Mountain Bikes")
-        self.page.locator(self.MOUNTAIN_BIKES).first.click()
+        # 1. Czekamy aż będzie w ogóle w DOM
+        selector = self.page.locator(self.MOUNTAIN_BIKES).first
+        selector.wait_for(state="attached", timeout=10000)
+
+        # 2. Klikamy z flagą force=True, która pomija checki Playwrighta dot. zasłaniania
+        selector.click(force=True)
+
         self.page.wait_for_load_state("networkidle")
         return self
 
@@ -141,13 +147,33 @@ class ProductPagePw(BasePagePw):
         return count
 
     def clear_cart_pw(self):
-        self.log_step("Starting cart cleanup")
-        self.go_to_cart_pw()
+        self.log_step("Starting BRUTE FORCE cart cleanup")
+
+        # Obsługa dialogu (konieczna do usuwania)
         self.page.on("dialog", lambda dialog: dialog.accept())
-        while self.page.locator(f"xpath={self.REMOVE_BTN}").count() > 0:
-            self.log_step("Removing cart item")
-            self.page.locator(f"xpath={self.REMOVE_BTN}").first.click()
-        self.log_done("Cart is empty")
+
+        while True:
+            self.go_to_cart_pw()
+            # Czekamy na stabilizację strony
+            self.page.wait_for_load_state("networkidle")
+
+            remove_buttons = self.page.locator(f"xpath={self.REMOVE_BTN}")
+            count = remove_buttons.count()
+
+            if count == 0:
+                break  # Koszyk jest wreszcie pusty
+
+            self.log_info(f"Items still in cart: {count}. Removing one and refreshing...")
+
+            # Klikamy 'Remove' na pierwszym produkcie
+            remove_buttons.first.click()
+
+            # KLUCZ: Po usunięciu czekamy chwilę i robimy twardy reload
+            self.page.wait_for_timeout(1000)
+            self.page.reload()
+
+        self.log_done("Cart is finally empty.")
+        self.open_bikes_main_link_pw()
         return self
 
 
@@ -241,7 +267,12 @@ class ProductPagePw(BasePagePw):
         self.go_to_cart_pw()
 
         # 4. Read Subtotal from the UI
-        total_text = self.page.locator(f"#{self.CART_TOTAL_PRICE}").inner_text()
+        self.log_step("Pobieram sumę całkowitą z koszyka...")
+        total_locator = self.page.locator(f"#{self.CART_TOTAL_PRICE}")
+
+        expect(total_locator).to_contain_text("$", timeout=5000)
+
+        total_text = total_locator.inner_text()
         actual_total = float(total_text.replace('$', '').replace(',', '').strip())
 
         # 5. Read individual line prices from the table

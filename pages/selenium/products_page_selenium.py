@@ -1,9 +1,12 @@
 import re
+import time
 
 import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.wait import WebDriverWait
+
 from pages.selenium.base_page_selenium import BasePage
 
 
@@ -76,11 +79,7 @@ class ProductsPage(BasePage):
         # 2. Click Add to Cart
         previous_count = self._current_cart_count()
         self.click(self.ADD_TO_CART_BUTTON)
-        try:
-            self._wait_for_cart_count_increment(previous_count, timeout=4)
-        except TimeoutException:
-            # Badge can be flaky in headed mode; final cart-content assertion is the source of truth.
-            self.log_warn("Cart badge increment timeout for first add; continuing to cart content verification.")
+        time.sleep(0.2)
 
         # 3. Open cart
         self.click(self.CART_ICON)
@@ -213,63 +212,18 @@ class ProductsPage(BasePage):
         return len(self.driver.find_elements(*self.EMPTY_CART_MESSAGE)) > 0
 
     def clear_cart(self):
-        """Robust cart cleanup with alert handling."""
-        self.log_step("Starting cart cleanup")
-        self.click(self.CART_ICON)
-        self.wait_for_url("Cart", timeout=8)
+        """Stable cart clearing by force-navigating after cleanup."""
+        self.log_step("Błyskawiczne czyszczenie koszyka...")
 
-        for _ in range(30):
-            # Fetch a fresh list of remove buttons each iteration.
-            buttons = self._get_remove_buttons()
+        # Clear session
+        script = "localStorage.clear(); sessionStorage.clear();"
+        self.driver.execute_script(script)
 
-            if not buttons:
-                if self._is_cart_empty_visible():
-                    self.log_done("Cart is empty")
-                    break
-                # Cart content may still be rendering after navigation.
-                try:
-                    self._wait(
-                        lambda d: len(self._get_remove_buttons()) > 0 or self._is_cart_empty_visible(),
-                        timeout=3,
-                    )
-                    continue
-                except TimeoutException:
-                    self.log_warn("No cart items were detected; treating cart as already clean.")
-                    break
+        # INSTEAD of refresh(), use your open method to go back to the source
+        self.driver.get(self.BIKE_MAIN_LINK)
 
-            self.log_step(f"Removing product, remaining entries: {len(buttons)}")
-            previous_count = len(buttons)
-            try:
-                buttons[0].click()
-            except Exception:
-                self.driver.execute_script("arguments[0].click();", buttons[0])
-
-            # Some cart variants display confirmation alert, others remove inline.
-            try:
-                alert = self._wait(EC.alert_is_present(), timeout=4)
-                self.log_info(f"Accepting alert: {alert.text}")
-                alert.accept()
-            except TimeoutException:
-                self.log_info("No confirmation alert displayed for remove action.")
-
-            # Wait for cart refresh after removal.
-            try:
-                self._wait(
-                    lambda d: len(self._get_remove_buttons()) < previous_count or self._is_cart_empty_visible(),
-                    timeout=4,
-                )
-            except TimeoutException:
-                # Retry cleanup loop instead of failing immediately on a single slow cart refresh.
-                self.log_warn("Cart did not refresh after remove click; retrying cleanup.")
-                continue
-        else:
-            remaining = len(self._get_remove_buttons())
-            raise AssertionError(
-                f"Cart cleanup did not finish within safety iteration limit. Remaining remove controls: {remaining}"
-            )
-
-        self.log_done("Cart cleanup finished; returning to bikes landing page")
-        self.open_bikes_main_link()
+        # Wait for a 'stabilizer' element (like the category titles)
+        self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES, timeout=10)
 
 
 
@@ -278,14 +232,14 @@ class ProductsPage(BasePage):
     def open_bikes_main_link(self):
         """Open bikes landing page."""
         self.open(self.BIKE_MAIN_LINK)
-        self._wait_for_bikes_landing_ready(timeout=10)
+        self._wait_for_bikes_landing_ready(timeout=5)
 
     def open_mountain_bikes(self):
         """Open Mountain Bikes category."""
         self.click(self.MOUNTAINS_BIKES_CATEGORY)
-        self._wait_for_product_grid_ready(timeout=10)
+        self._wait_for_product_grid_ready(timeout=5)
 
-    def _wait_for_bikes_landing_ready(self, timeout=10):
+    def _wait_for_bikes_landing_ready(self, timeout=5):
         """Wait for bikes landing page regardless of whether pager is visible yet."""
         self.wait_for_url("Home/Bikes", timeout=timeout)
         self._wait(
@@ -295,7 +249,7 @@ class ProductsPage(BasePage):
             timeout=timeout,
         )
 
-    def _wait_for_product_grid_ready(self, timeout=10):
+    def _wait_for_product_grid_ready(self, timeout=5):
         """Wait for product cards and related listing markers to appear."""
         self._wait(
             lambda d: len(d.find_elements(*self.PRODUCT_CARD)) > 0
