@@ -109,7 +109,7 @@ class ProductsPage(BasePage):
         )
 
     def _product_cards_with_add_to_cart(self):
-        """Karty produktu zawierające przycisk add-to-cart (kolejność zgodna z siatką)."""
+        """Product cards that contain an add-to-cart control (order matches the grid)."""
         cards = self.driver.find_elements(*self.PRODUCT_CARD)
         with_cart = []
         for card in cards:
@@ -127,7 +127,7 @@ class ProductsPage(BasePage):
 
         # Add products
         for i in range(count):
-            # Cena i przycisk z tej samej karty — unikamy rozjechania z get_all_prices() vs wszystkie .add-to-cart.
+            # Price and button from the same card — avoids mismatch between get_all_prices() and all .add-to-cart.
             self._wait_for_product_grid_ready(timeout=8)
             cards = self._product_cards_with_add_to_cart()
             if i >= len(cards):
@@ -313,7 +313,7 @@ class ProductsPage(BasePage):
         Telerik eShop uses a Kendo grid on /Account/ShoppingCart; we clear it via
         the same code path as removeItemFromShoppingCart, then return to Bikes.
         """
-        self.log_step("Błyskawiczne czyszczenie koszyka...")
+        self.log_step("Clearing shopping cart...")
 
         with contextlib.suppress(Exception):
             self.driver.execute_script("localStorage.clear(); sessionStorage.clear();")
@@ -406,40 +406,40 @@ class ProductsPage(BasePage):
         return float(match.group(1).replace(",", ""))
 
     def get_cart_line_item_prices(self):
-        self.log_info("[POM] Pobieram ceny produktów z koszyka...")
+        self.log_info("[POM] Reading product line prices from the cart...")
 
-        # Używamy wait_for_all_visible, bo find_elements nie czeka i często zwraca [] przy asynchronicznym UI
+        # Use wait_for_all_visible because find_elements does not wait and often returns [] for async UI
         try:
-            # Zakładam, że CART_LINE_ITEM_PRICES to ten poprawiony, prostszy lokator
+            # CART_LINE_ITEM_PRICES is the shared locator for cart line prices
             price_elements = self.wait_for_all_visible(self.CART_LINE_ITEM_PRICES, timeout=7)
         except Exception as e:
-            self.log_warn(f"[POM] Timeout przy czekaniu na ceny: {e}. Próbuję pobrać co jest dostępne...")
+            self.log_warn(f"[POM] Timed out waiting for cart line prices: {e}. Falling back to find_elements.")
             price_elements = self.driver.find_elements(*self.CART_LINE_ITEM_PRICES)
 
         prices = []
         for element in price_elements:
             try:
-                # Pobieramy tekst tylko od widocznych elementów
+                # Use visible elements only
                 if element.is_displayed():
                     text = element.text.strip()
                     if text:
                         prices.append(self._parse_price_text(text))
             except Exception as e:
-                self.log_warn(f"[POM] Błąd przy parsowaniu ceny pojedynczego elementu: {e}")
+                self.log_warn(f"[POM] Error parsing a single line price: {e}")
                 continue
 
         if not prices:
-            # Screenshot w Allure to złoto przy debugowaniu
+            # Screenshot in Allure helps when debugging
             allure.attach(
                 self.driver.get_screenshot_as_png(),
                 name="failed_cart_prices_view",
                 attachment_type=allure.attachment_type.PNG
             )
-            # Logujemy HTML, żebyś widział w raporcie, co Selenium faktycznie "widziało" w DOMie
+            # Attach HTML so reports show what the DOM actually contained
             allure.attach(self.driver.page_source, name="page_source", attachment_type=allure.attachment_type.TEXT)
-            raise AssertionError("Nie znaleziono żadnych cen produktów w koszyku!")
+            raise AssertionError("No product prices found in the cart.")
 
-        self.log_info(f"[POM] Odczytano {len(prices)} cen: {prices}")
+        self.log_info(f"[POM] Read {len(prices)} prices: {prices}")
         return prices
 
     def get_total_count_from_pager(self):

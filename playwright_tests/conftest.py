@@ -53,7 +53,7 @@ def browser_type_launch_args():
 @pytest.fixture(scope="session")
 def browser_context_args():
     return {
-        # Ustawienie viewport na None pozwala przeglądarce przejąć rozmiar okna
+        # viewport=None lets the browser control window size
         "viewport": None,
         "base_url": "https://demos.telerik.com/kendo-ui/eshop"
     }
@@ -66,12 +66,12 @@ def pytest_runtest_makereport(item, call):
     _ = call
 
     if rep.when == "call" and rep.failed:
-        # Pobieramy fixturę 'page' z testu
+        # Get the test's `page` fixture
         page = item.funcargs.get("page")
         if page:
             try:
-                # full_page=False robi screena tylko tego, co widać
-                # timeout=5000 sprawi, że nie czeka w nieskończoność
+                # full_page=False captures the viewport only
+                # timeout=5000 avoids hanging forever
                 screenshot = page.screenshot(full_page=False, timeout=5000)
                 allure.attach(
                     screenshot,
@@ -79,4 +79,4 @@ def pytest_runtest_makereport(item, call):
                     attachment_type=allure.attachment_type.PNG
                 )
             except Exception as e:
-                print(f"\n[Błąd Allure] Nie udało się wykonać zrzutu ekranu: {e}")
+                print(f"\n[Allure] Failed to capture failure screenshot: {e}")
