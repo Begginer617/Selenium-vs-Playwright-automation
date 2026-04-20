@@ -50,11 +50,11 @@ class ProductPagePw(BasePagePw):
 
     def open_mountain_bikes_pw(self):
         self.log_step("Opening category: Mountain Bikes")
-        # 1. Czekamy aż będzie w ogóle w DOM
+        # 1. Wait until the link exists in the DOM
         selector = self.page.locator(self.MOUNTAIN_BIKES).first
         selector.wait_for(state="attached", timeout=10000)
 
-        # 2. Klikamy z flagą force=True, która pomija checki Playwrighta dot. zasłaniania
+        # 2. force=True skips Playwright actionability checks (e.g. obscured elements)
         selector.click(force=True)
 
         self.page.wait_for_load_state("networkidle")
@@ -82,18 +82,18 @@ class ProductPagePw(BasePagePw):
         return count
 
     def get_cart_line_item_prices_pw(self):
-        """Pobiera wszystkie ceny jednostkowe z tabeli koszyka."""
-        self.log_info("[POM] Pobieram ceny poszczególnych produktów z koszyka...")
+        """Read unit prices from the cart table."""
+        self.log_info("[POM] Reading line prices from the cart table...")
         price_locators = self.page.locator(self.CART_LINE_PRICES_PW)
 
-        # Wyciągamy teksty, czyścimy i zamieniamy na float
+        # Parse text, strip currency, convert to float
         raw_texts = price_locators.all_inner_texts()
         prices = []
         for text in raw_texts:
             clean_price = float(text.replace('$', '').replace(',', '').strip())
             prices.append(clean_price)
 
-        self.log_info(f"[POM] Znalezione ceny w koszyku: {prices}")
+        self.log_info(f"[POM] Cart line prices: {prices}")
         return prices
 
     def assert_expected_bike_categories_pw(self, expected_titles=None):
@@ -149,26 +149,26 @@ class ProductPagePw(BasePagePw):
     def clear_cart_pw(self):
         self.log_step("Starting BRUTE FORCE cart cleanup")
 
-        # Obsługa dialogu (konieczna do usuwania)
+        # Accept confirm dialogs during removal
         self.page.on("dialog", lambda dialog: dialog.accept())
 
         while True:
             self.go_to_cart_pw()
-            # Czekamy na stabilizację strony
+            # Wait for the cart page to settle
             self.page.wait_for_load_state("networkidle")
 
             remove_buttons = self.page.locator(f"xpath={self.REMOVE_BTN}")
             count = remove_buttons.count()
 
             if count == 0:
-                break  # Koszyk jest wreszcie pusty
+                break  # Cart is empty
 
             self.log_info(f"Items still in cart: {count}. Removing one and refreshing...")
 
-            # Klikamy 'Remove' na pierwszym produkcie
+            # Click Remove on the first line
             remove_buttons.first.click()
 
-            # KLUCZ: Po usunięciu czekamy chwilę i robimy twardy reload
+            # Short wait then hard reload so the grid updates
             self.page.wait_for_timeout(1000)
             self.page.reload()
 
@@ -267,7 +267,7 @@ class ProductPagePw(BasePagePw):
         self.go_to_cart_pw()
 
         # 4. Read Subtotal from the UI
-        self.log_step("Pobieram sumę całkowitą z koszyka...")
+        self.log_step("Reading cart subtotal from the UI...")
         total_locator = self.page.locator(f"#{self.CART_TOTAL_PRICE}")
 
         expect(total_locator).to_contain_text("$", timeout=5000)

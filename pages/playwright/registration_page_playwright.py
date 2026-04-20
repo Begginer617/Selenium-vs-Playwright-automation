@@ -32,14 +32,13 @@ class RegistrationPagePw(BasePagePw):
     def open_registration_url_pw(self):
         self.log_step("Navigating to registration page")
 
-        # 1. Czekamy tylko na strukturę DOM (bardzo szybko)
+        # 1. Fast navigation: DOM ready is enough
         self.page.goto(
             "https://demos.telerik.com/kendo-ui/eshop/Account/Register",
             wait_until="domcontentloaded"
         )
 
-        # 2. Zamiast czekać na 'load', czekamy na konkretny element formularza
-        # To sprawi, że test ruszy, gdy tylko pole będzie gotowe do pisania
+        # 2. Wait for a concrete form field instead of full page load
         self.page.wait_for_selector("input[name='Email']", state="visible", timeout=10000)
 
         return self
