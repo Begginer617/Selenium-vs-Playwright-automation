@@ -1,3 +1,4 @@
+import contextlib
 import re
 import time
 
@@ -13,6 +14,7 @@ from pages.selenium.base_page_selenium import BasePage
 class ProductsPage(BasePage):
     """Constants and links."""
     BIKE_MAIN_LINK = "https://demos.telerik.com/kendo-ui/eshop/Home/Bikes"
+    SHOPPING_CART_URL = "https://demos.telerik.com/kendo-ui/eshop/Account/ShoppingCart"
 
     """Category locators."""
     BIKE_CATEGORY_TITLES = (By.XPATH, "//div[@class='category-heading']")
@@ -106,6 +108,18 @@ class ProductsPage(BasePage):
             f"ERROR: Product '{product_name}' not found in cart. Found: {cart_names}"
         )
 
+    def _product_cards_with_add_to_cart(self):
+        """Karty produktu zawierające przycisk add-to-cart (kolejność zgodna z siatką)."""
+        cards = self.driver.find_elements(*self.PRODUCT_CARD)
+        with_cart = []
+        for card in cards:
+            try:
+                if card.find_elements(By.CLASS_NAME, "add-to-cart"):
+                    with_cart.append(card)
+            except Exception:
+                continue
+        return with_cart
+
     def add_multiple_products_and_verify_total(self, count=5):
         """Add N products and verify total cart value."""
         self.log_step(f"Starting cart total validation for {count} products")
@@ -113,23 +127,25 @@ class ProductsPage(BasePage):
 
         # Add products
         for i in range(count):
-            # Re-fetch buttons each loop because product cards are re-rendered after add-to-cart.
-            current_add_buttons = self.driver.find_elements(*self.ALL_ADD_BUTTONS)
-            current_prices = self.get_all_prices()
-            if i >= len(current_add_buttons):
+            # Cena i przycisk z tej samej karty — unikamy rozjechania z get_all_prices() vs wszystkie .add-to-cart.
+            self._wait_for_product_grid_ready(timeout=8)
+            cards = self._product_cards_with_add_to_cart()
+            if i >= len(cards):
                 raise AssertionError(
-                    f"Could not find add-to-cart button for product index {i}. "
-                    f"Only {len(current_add_buttons)} buttons found."
+                    f"Could not find product card with add-to-cart for index {i}. "
+                    f"Only {len(cards)} cards found."
                 )
-            if i >= len(current_prices):
-                raise AssertionError(
-                    f"Could not read price for product index {i}. "
-                    f"Only {len(current_prices)} prices found."
-                )
-            selected_prices.append(current_prices[i])
-            self.log_step(f"Adding product #{i + 1} priced at ${selected_prices[i]}")
+            card = cards[i]
+            price_el = card.find_element(By.CSS_SELECTOR, ".card-price")
+            clean_text = price_el.text.replace("$", "").replace(",", "").strip()
+            if not clean_text:
+                raise AssertionError(f"Empty price on product card at index {i}.")
+            price_value = float(clean_text)
+            selected_prices.append(price_value)
+            self.log_step(f"Adding product #{i + 1} priced at ${price_value}")
+            add_btn = card.find_element(By.CLASS_NAME, "add-to-cart")
             previous_count = self._current_cart_count()
-            current_add_buttons[i].click()
+            add_btn.click()
             try:
                 self._wait_for_cart_count_increment(previous_count, timeout=5)
             except Exception:
@@ -142,7 +158,7 @@ class ProductsPage(BasePage):
         # Wait for cart total to settle before reading value.
         self.log_step("Waiting for cart total recalculation")
         self._wait(
-            lambda d: d.find_element(*self.CART_TOTAL_PRICE).text.strip().startswith("$"),
+            lambda d: "$" in d.find_element(*self.CART_TOTAL_PRICE).text.strip(),
             timeout=8,
         )
 
@@ -176,12 +192,18 @@ class ProductsPage(BasePage):
         self.log_done("Cart total is correct")
 
     def _current_cart_count(self):
-        """Return current numeric cart badge value; fallback to 0 when badge is missing."""
-        badge_candidates = self.driver.find_elements(By.CSS_SELECTOR, ".k-badge, .cart-count")
-        for badge in badge_candidates:
-            text = badge.text.strip()
-            if text.isdigit():
-                return int(text)
+        """Return current numeric cart header badge; avoid list-page discount .k-badge (e.g. 20% -> 20)."""
+        for locator in (
+            (By.ID, "shopping-cart-badge"),
+            (By.CSS_SELECTOR, "a[href*='Cart'] .k-badge, a[href*='ShoppingCart'] .k-badge, .cart-count"),
+        ):
+            for badge in self.driver.find_elements(*locator):
+                try:
+                    text = badge.text.strip()
+                    if text.isdigit():
+                        return int(text)
+                except Exception:
+                    continue
         return 0
 
     def _wait_for_cart_count_increment(self, previous_count, timeout=2):
@@ -193,6 +215,9 @@ class ProductsPage(BasePage):
             self.REMOVE_ITEM_BUTTONS,
             (By.XPATH, "//p[normalize-space()='Remove']"),
             (By.XPATH, "//button[contains(@class, 'remove-product') or normalize-space()='Remove']"),
+            # Telerik eShop: shopping_cart.js uses id="remove_<itemId>" on a control in the Kendo grid
+            (By.CSS_SELECTOR, "[id^='remove_']"),
+            (By.XPATH, "//*[@id[starts-with(.,'remove_')]]"),
         ]
         for locator in fallback_locators:
             elements = self.driver.find_elements(*locator)
@@ -211,19 +236,108 @@ class ProductsPage(BasePage):
     def _is_cart_empty_visible(self):
         return len(self.driver.find_elements(*self.EMPTY_CART_MESSAGE)) > 0
 
+    def _get_page_load_timeout(self):
+        t = 4.0
+        with contextlib.suppress(Exception):
+            timeouts = getattr(self.driver, "timeouts", None)
+            if timeouts is not None and getattr(timeouts, "page_load", None) is not None:
+                t = float(timeouts.page_load)
+        return t
+
+    def _set_page_load_timeout(self, seconds):
+        with contextlib.suppress(Exception):
+            self.driver.set_page_load_timeout(seconds)
+
+    def _accept_any_alert(self):
+        with contextlib.suppress(Exception):
+            self.driver.switch_to.alert.accept()
+
+    def _get_url_fast(self, url, url_part, part_timeout=8):
+        """One navigation with a bounded page-load timeout; avoids long BasePage.open() retries."""
+        self._accept_any_alert()
+        old = self._get_page_load_timeout()
+        with contextlib.suppress(Exception):
+            self._set_page_load_timeout(max(10, part_timeout + 2))
+        try:
+            with contextlib.suppress(Exception):
+                self.driver.get(url)
+        except Exception:
+            time.sleep(0.3)
+        with contextlib.suppress(TimeoutException):
+            self.wait_for_url(url_part, timeout=part_timeout)
+        with contextlib.suppress(Exception):
+            self._set_page_load_timeout(old)
+
+    def _open_bikes_landing_from_clear(self):
+        self._get_url_fast(self.BIKE_MAIN_LINK, "Home/Bikes", part_timeout=10)
+        self._wait_for_bikes_landing_ready(timeout=8)
+
+    def _clear_shopping_cart_grid_kendo(self):
+        """
+        Pop all Kendo grid rows and sync to the server (Telerik eShop /js/shopping_cart.js).
+        """
+        with contextlib.suppress(Exception):
+            return int(
+                self.driver.execute_script(
+                    r"""
+            if (!window.jQuery) { return 0; }
+            var oldc = window.confirm, n = 0;
+            try {
+                window.confirm = function() { return true; };
+                var g = jQuery("#shoppingCartGrid").data("kendoGrid");
+                if (!g) { return 0; }
+                var guard = 300;
+                while (guard-- > 0) {
+                    var rows = g.tbody ? g.tbody.find("tr") : jQuery();
+                    if (!rows || !rows.length) { break; }
+                    g.removeRow(jQuery(rows[0]));
+                    n++;
+                    g.dataSource.sync();
+                }
+            } finally {
+                window.confirm = oldc;
+            }
+            if (typeof calculateShoppingCartTotal === "function") { try { calculateShoppingCartTotal(); } catch (e) {} }
+            if (typeof getShoppingCartItemsCount === "function") { try { getShoppingCartItemsCount(); } catch (e) {} }
+            return n;
+                    """
+                )
+                or 0
+            )
+        return 0
+
     def clear_cart(self):
-        """Stable cart clearing by force-navigating after cleanup."""
+        """
+        Empty the in-app shopping cart (server state), then return to the bikes page.
+
+        Telerik eShop uses a Kendo grid on /Account/ShoppingCart; we clear it via
+        the same code path as removeItemFromShoppingCart, then return to Bikes.
+        """
         self.log_step("Błyskawiczne czyszczenie koszyka...")
 
-        # Clear session
-        script = "localStorage.clear(); sessionStorage.clear();"
-        self.driver.execute_script(script)
+        with contextlib.suppress(Exception):
+            self.driver.execute_script("localStorage.clear(); sessionStorage.clear();")
 
-        # INSTEAD of refresh(), use your open method to go back to the source
-        self.driver.get(self.BIKE_MAIN_LINK)
+        for _ in range(3):
+            self._get_url_fast(
+                self.SHOPPING_CART_URL,
+                "ShoppingCart",
+                part_timeout=12,
+            )
+            for _ in range(50):
+                if self._is_cart_empty_visible():
+                    self._open_bikes_landing_from_clear()
+                    return
+                if self.driver.find_elements(By.ID, "shoppingCartGrid"):
+                    break
+                if self._get_remove_buttons():
+                    break
+                time.sleep(0.2)
 
-        # Wait for a 'stabilizer' element (like the category titles)
-        self.wait_for_all_visible(self.BIKE_CATEGORY_TITLES, timeout=10)
+            self._clear_shopping_cart_grid_kendo()
+            time.sleep(0.5)
+
+        self._open_bikes_landing_from_clear()
 
 
 
