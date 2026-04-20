@@ -4,6 +4,10 @@ import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+# Telerik eShop: navigate here before clearing so cookies/storage/CDP target this origin.
+ESHOP_ENTRY_URL = "https://demos.telerik.com/kendo-ui/eshop/"
+ESHOP_CDP_ORIGIN = "https://demos.telerik.com"
+
 # --- IMPORTY TWOICH STRON ---
 from pages.selenium.header_page_selenium import HeaderPage
 from pages.selenium.home_page_selenium import HomePage
@@ -87,9 +91,22 @@ def driver(request):
 def reset_browser_state(driver):
     # Keep tests isolated while reusing one browser instance for speed.
     with contextlib.suppress(Exception):
+        driver.get(ESHOP_ENTRY_URL)
+    with contextlib.suppress(Exception):
         driver.delete_all_cookies()
     with contextlib.suppress(Exception):
-        driver.execute_script("window.localStorage.clear(); window.sessionStorage.clear();")
+        driver.execute_script(
+            "try { localStorage.clear(); } catch (e) {}"
+            "try { sessionStorage.clear(); } catch (e) {}"
+        )
+    # Chromium: clear IndexedDB, cache storage, etc. for the origin
+    with contextlib.suppress(Exception):
+        driver.execute_cdp_cmd(
+            "Storage.clearDataForOrigin",
+            {"origin": ESHOP_CDP_ORIGIN, "storageTypes": "all"},
+        )
+    with contextlib.suppress(Exception):
+        driver.execute_cdp_cmd("Network.clearBrowserCache", {})
     yield
 
 
