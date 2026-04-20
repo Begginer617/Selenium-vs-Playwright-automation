@@ -1,9 +1,9 @@
 from playwright.sync_api import Page, expect
+from pages.playwright.base_page_playwright import BasePagePw
 
-
-class RegistrationPagePw:
+class RegistrationPagePw(BasePagePw):
     def __init__(self, page: Page):
-        self.page = page
+        super().__init__(page)
 
         # --- Validation summary errors ---
         self.EMPTY_FIRST_AND_LAST_NAME_VALIDATION_SUMMARY_LIST = "//li[contains(., 'First and Last name')]"
@@ -30,7 +30,19 @@ class RegistrationPagePw:
         self.REGISTER_SUBMIT_BUTTON = "//button[@type='submit']"
 
     def open_registration_url_pw(self):
-        self.page.goto("https://demos.telerik.com/kendo-ui/eshop/Account/Register")
+        self.log_step("Navigating to registration page")
+
+        # 1. Czekamy tylko na strukturę DOM (bardzo szybko)
+        self.page.goto(
+            "https://demos.telerik.com/kendo-ui/eshop/Account/Register",
+            wait_until="domcontentloaded"
+        )
+
+        # 2. Zamiast czekać na 'load', czekamy na konkretny element formularza
+        # To sprawi, że test ruszy, gdy tylko pole będzie gotowe do pisania
+        self.page.wait_for_selector("input[name='Email']", state="visible", timeout=10000)
+
+        return self
 
     def click_register_pw(self):
         # Use .first in case of duplicated submit buttons in the DOM.

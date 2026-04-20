@@ -45,7 +45,7 @@ def browser_context_args(browser_context_args):
 def browser_type_launch_args():
     return {
         "headless": False,
-        "slow_mo": 500,
+        "slow_mo": 10,
         "args": ["--window-size", "--window-size=1920,1080"]
     }
 
