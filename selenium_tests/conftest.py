@@ -8,7 +8,7 @@ from selenium.webdriver.chrome.options import Options
 ESHOP_ENTRY_URL = "https://demos.telerik.com/kendo-ui/eshop/"
 ESHOP_CDP_ORIGIN = "https://demos.telerik.com"
 
-# --- IMPORTY TWOICH STRON ---
+# --- Pages Import ---
 from pages.selenium.header_page_selenium import HeaderPage
 from pages.selenium.home_page_selenium import HomePage
 from pages.selenium.login_page_selenium import LoginPage
