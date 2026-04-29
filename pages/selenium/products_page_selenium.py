@@ -9,6 +9,7 @@ from selenium.common.exceptions import (
     ElementNotInteractableException,
     StaleElementReferenceException,
     TimeoutException,
+    UnexpectedAlertPresentException,
 )
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -244,6 +245,7 @@ class ProductsPage(BasePage):
 
     def _is_cart_empty_message_visible(self):
         """DOM message such as 'Your shopping cart is empty'."""
+        self._accept_any_alert()
         if self.driver.find_elements(*self.EMPTY_CART_MESSAGE):
             return True
         # Alternate copy on some builds / locales
@@ -258,6 +260,7 @@ class ProductsPage(BasePage):
 
     def _cart_kendo_item_count(self):
         """Approximate line-item count from Kendo grid when present; -1 if unavailable."""
+        self._accept_any_alert()
         with contextlib.suppress(Exception):
             n = self.driver.execute_script(
                 """
@@ -284,8 +287,30 @@ class ProductsPage(BasePage):
             return True
         return False
 
+    def assert_shopping_cart_empty(self, timeout=12):
+        """
+        Open the cart page and fail fast if line items or totals still indicate a non-empty cart.
+        Call after clear_cart() when the test depends on a zero baseline.
+        On success, navigates to Home/Bikes (same as clear_cart()) so the next step can open categories.
+        """
+        self._get_url_fast(
+            self.SHOPPING_CART_URL,
+            "ShoppingCart",
+            part_timeout=max(12, timeout),
+        )
+        try:
+            self._wait(lambda d: self._is_cart_effectively_empty(), timeout=timeout)
+        except TimeoutException as exc:
+            n = self._cart_kendo_item_count()
+            badge = self._current_cart_count()
+            raise AssertionError(
+                f"Shopping cart is not empty (kendo_items={n}, header_badge_count={badge})."
+            ) from exc
+        # Match clear_cart() post-condition: listing tests expect Home/Bikes context.
+        self._open_bikes_landing_from_clear()
+
     def _clear_cart_via_remove_buttons(self, max_clicks=40):
-        """Remove line items via visible Remove controls (server path when Kendo script fails)."""
+        """Remove line items via visible Remove controls (real UI / server sync)."""
         for _ in range(max_clicks):
             if self._is_cart_effectively_empty():
                 return True
@@ -304,13 +329,15 @@ class ProductsPage(BasePage):
             except (StaleElementReferenceException, ElementNotInteractableException):
                 with contextlib.suppress(Exception):
                     self.driver.execute_script("arguments[0].click();", btn)
+            self._accept_any_alert()
             try:
                 self._wait(
                     lambda d: self._is_cart_effectively_empty()
                     or len(self._get_remove_buttons()) < len(buttons),
                     timeout=5,
                 )
-            except TimeoutException:
+            except (TimeoutException, UnexpectedAlertPresentException):
+                self._accept_any_alert()
                 self.log_warn("Remove click did not update cart DOM in time; retrying.")
         return self._is_cart_effectively_empty()
 
@@ -390,15 +417,15 @@ class ProductsPage(BasePage):
         """
         Empty the in-app shopping cart (server state), then return to the bikes page.
 
-        Telerik eShop uses a Kendo grid on /Account/ShoppingCart; we clear it via
-        the same code path as removeItemFromShoppingCart, then return to Bikes.
+        Prefer the same path as a user: visible Remove controls (locators), then optional
+        Kendo bulk clear if rows remain. Raises if the cart cannot be emptied.
         """
         self.log_step("Clearing shopping cart...")
 
         with contextlib.suppress(Exception):
             self.driver.execute_script("localStorage.clear(); sessionStorage.clear();")
 
-        for _ in range(3):
+        for attempt in range(4):
             self._get_url_fast(
                 self.SHOPPING_CART_URL,
                 "ShoppingCart",
@@ -419,16 +446,44 @@ class ProductsPage(BasePage):
                 self._open_bikes_landing_from_clear()
                 return
 
-            self._clear_shopping_cart_grid_kendo()
-            if not self._is_cart_effectively_empty():
-                self.log_warn("Kendo script clear incomplete; falling back to Remove button clicks.")
-                self._clear_cart_via_remove_buttons()
-
+            # 1) Locator-driven removes first (stable, mirrors manual testing).
+            self._clear_cart_via_remove_buttons()
             try:
-                self._wait(lambda d: self._is_cart_effectively_empty(), timeout=10)
+                self._wait(lambda d: self._is_cart_effectively_empty(), timeout=12)
             except TimeoutException:
-                self.log_warn("Cart still not empty after clear attempts; will retry outer loop.")
+                self.log_warn(
+                    f"Cart still has items after Remove-locator pass (attempt {attempt + 1}/4)."
+                )
 
+            if self._is_cart_effectively_empty():
+                self._open_bikes_landing_from_clear()
+                return
+
+            # 2) Bulk Kendo clear, then Remove again for anything left.
+            self._clear_shopping_cart_grid_kendo()
+            self._clear_cart_via_remove_buttons()
+            try:
+                self._wait(lambda d: self._is_cart_effectively_empty(), timeout=12)
+            except TimeoutException:
+                self.log_warn(
+                    f"Cart still not empty after Kendo + Remove pass (attempt {attempt + 1}/4)."
+                )
+
+            if self._is_cart_effectively_empty():
+                self._open_bikes_landing_from_clear()
+                return
+
+        self._get_url_fast(
+            self.SHOPPING_CART_URL,
+            "ShoppingCart",
+            part_timeout=12,
+        )
+        if not self._is_cart_effectively_empty():
+            raise AssertionError(
+                "clear_cart() could not empty the shopping cart: "
+                "Remove locators and Kendo grid clear were insufficient. "
+                "See assert_shopping_cart_empty() for a hard check in tests."
+            )
         self._open_bikes_landing_from_clear()
 
 
