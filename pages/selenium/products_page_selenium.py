@@ -331,8 +331,8 @@ class ProductsPage(BasePage):
                     var tr = rows[i];
                     if (tr.classList.contains("k-grid-norecords")) { continue; }
                     var tds = tr.querySelectorAll("td");
-                    /* Data rows usually have multiple cells; do not require remove/final-price in-row (merged layouts). */
-                    if (tds.length >= 2) { c++; }
+                    /* Merged Kendo rows may use a single wide td — count any data row with cells. */
+                    if (tds.length >= 1) { c++; }
                 }
                 return c;
                 """
@@ -381,11 +381,18 @@ class ProductsPage(BasePage):
         if self._current_cart_count() > 0:
             return False
 
+        # Do not treat "0 counted rows + grid in DOM" as empty: row counters can miss merged cells;
+        # require either the empty copy or a confirmed zero subtotal.
         if self._is_cart_empty_message_visible():
             return True
 
-        # Grid present with 0 line rows and $0 subtotal (or no subtotal yet)
-        if line_rows == 0 and self.driver.find_elements(By.ID, "shoppingCartGrid"):
+        sub_final = self._cart_subtotal_numeric()
+        if (
+            line_rows == 0
+            and self.driver.find_elements(By.ID, "shoppingCartGrid")
+            and sub_final is not None
+            and sub_final <= 0.02
+        ):
             return True
 
         return False
