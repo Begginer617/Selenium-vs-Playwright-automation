@@ -1,9 +1,7 @@
-import pytest
 import allure
 
 @allure.parent_suite("Selenium Framework")
 @allure.suite("E-shop Tests")
-@pytest.mark.flaky(reruns=2, reruns_delay=2)  # 2 reruns, 2s between attempts
 def test_multiple_products_total_calculation(home_page_selenium, login_page_selenium, product_page_selenium):
     print("[STEP] Open login page and authenticate.")
     home_page_selenium.open_login_page()

@@ -158,13 +158,18 @@ class ProductsPage(BasePage):
                 f"[{i + 1}]//button[contains(@class,'add-to-cart')]",
             )
             previous_count = self._current_cart_count()
+            self.scroll_to(add_loc)
             self.safe_click(add_loc, retries=3)
             try:
-                self._wait_for_cart_count_increment(previous_count, timeout=8)
+                self._wait_for_cart_count_increment(previous_count, timeout=12)
             except TimeoutException:
-                self.log_warn("Cart badge did not increment; retrying add click once.")
+                self.log_warn("Cart badge did not increment; retrying add (click + JS).")
                 self.safe_click(add_loc, retries=2)
-                self._wait_for_cart_count_increment(previous_count, timeout=8)
+                try:
+                    self._wait_for_cart_count_increment(previous_count, timeout=10)
+                except TimeoutException:
+                    self.click_with_js(add_loc)
+                    self._wait_for_cart_count_increment(previous_count, timeout=12)
         expected_total = sum(selected_prices)
 
         # Open cart
@@ -224,6 +229,10 @@ class ProductsPage(BasePage):
 
     def _wait_for_cart_count_increment(self, previous_count, timeout=2):
         self._wait(lambda d: self._current_cart_count() > previous_count, timeout=timeout)
+
+    def _wait_for_header_cart_badge(self, expected_count, timeout=12):
+        """Wait until the header shopping-cart badge shows exactly expected_count (slow on Windows/demo)."""
+        self._wait(lambda d: self._current_cart_count() == expected_count, timeout=timeout)
 
     def _get_remove_buttons(self):
         """Return visible remove controls from supported cart templates."""
@@ -387,6 +396,7 @@ class ProductsPage(BasePage):
             ) from exc
         # Match clear_cart() post-condition: listing tests expect Home/Bikes context.
         self._open_bikes_landing_from_clear()
+        self._wait_for_header_cart_badge(0, timeout=15)
 
     def _clear_cart_via_remove_buttons(self, max_clicks=40):
         """Remove line items via visible Remove controls (real UI / server sync)."""
@@ -457,6 +467,11 @@ class ProductsPage(BasePage):
     def _open_bikes_landing_from_clear(self):
         self._get_url_fast(self.BIKE_MAIN_LINK, "Home/Bikes", part_timeout=10)
         self._wait_for_bikes_landing_ready(timeout=8)
+        # Header badge can lag behind server-side cart clear on slow networks / Windows.
+        try:
+            self._wait_for_header_cart_badge(0, timeout=15)
+        except TimeoutException:
+            self.log_warn("Header cart badge did not show 0 after returning to Bikes; continuing.")
 
     def _clear_shopping_cart_grid_kendo(self):
         """
