@@ -59,18 +59,6 @@ class DriverFactory:
         return driver
 
 
-# --- Pytest CLI options ---
-def pytest_addoption(parser):
-    # Allow Docker/remote execution toggle from CLI.
-    parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
-    parser.addoption(
-        "--headless",
-        action="store",
-        default="false",
-        help="Run Chrome without UI: true or false (CI / faster local runs)",
-    )
-
-
 # --- Main Selenium WebDriver fixture ---
 @pytest.fixture(scope="session")
 def driver(request):
