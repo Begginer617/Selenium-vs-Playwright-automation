@@ -170,17 +170,27 @@ class ProductsPage(BasePage):
                 except TimeoutException:
                     self.click_with_js(add_loc)
                     self._wait_for_cart_count_increment(previous_count, timeout=12)
-        # Header badge must match adds (detects leftover lines + 3 new items without failing only at total assert).
-        try:
-            self._wait_for_header_cart_badge(count, timeout=18)
-        except TimeoutException as exc:
-            raise AssertionError(
-                f"After adding {count} products, header cart badge expected {count}, "
-                f"got {self._current_cart_count()} (possible stale cart or missed clicks)."
-            ) from exc
         expected_total = sum(selected_prices)
+        # Header badge / tbody row count can disagree with Kendo layout; confirm server subtotal.
+        self._get_url_fast(self.SHOPPING_CART_URL, "ShoppingCart", part_timeout=15)
+        try:
+            self._wait(
+                lambda d: (
+                    (s := self._cart_subtotal_numeric()) is not None
+                    and abs(s - expected_total) < 0.08
+                ),
+                timeout=25,
+            )
+        except TimeoutException as exc:
+            sub = self._cart_subtotal_numeric()
+            lines = self._cart_shopping_grid_line_count()
+            badge = self._current_cart_count()
+            raise AssertionError(
+                f"Cart subtotal did not match expected ${expected_total:.2f} "
+                f"(got subtotal={sub}, grid_lines={lines}, header_badge={badge})."
+            ) from exc
 
-        # Open cart
+        # Open cart (same as before; may refresh from listing chrome)
         self.click(self.CART_ICON)
 
         # Wait for cart total to settle before reading value.
