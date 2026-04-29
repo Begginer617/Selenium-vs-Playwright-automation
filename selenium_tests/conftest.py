@@ -63,6 +63,12 @@ class DriverFactory:
 def pytest_addoption(parser):
     # Allow Docker/remote execution toggle from CLI.
     parser.addoption("--remote", action="store", default="false", help="Run on Docker: true or false")
+    parser.addoption(
+        "--headless",
+        action="store",
+        default="false",
+        help="Run Chrome without UI: true or false (CI / faster local runs)",
+    )
 
 
 # --- Main Selenium WebDriver fixture ---
@@ -70,9 +76,14 @@ def pytest_addoption(parser):
 def driver(request):
     # 1. Read runtime options from CLI.
     remote_opt = request.config.getoption("--remote").lower() == "true"
+    headless_opt = request.config.getoption("--headless").lower() == "true"
 
     # 2. Configure Chrome options.
     options = Options()
+
+    if headless_opt:
+        # Chrome 109+: prefer new headless (closer to headed behavior).
+        options.add_argument("--headless=new")
 
     # Disable password/pop-up features that can interfere with automation.
     options.add_argument("--disable-features=PasswordLeakDetection,SafeBrowsing")
@@ -107,8 +118,9 @@ def driver(request):
     # Explicit waits only: mixing implicit + WebDriverWait inflates every poll with
     # implicit delay and causes hard-to-debug hangs (see BasePage._wait).
     driver.implicitly_wait(0)
-    with contextlib.suppress(Exception):
-        driver.maximize_window()
+    if not headless_opt:
+        with contextlib.suppress(Exception):
+            driver.maximize_window()
 
     # One heavy Chromium reset per session (major speed win vs per-test CDP).
     _heavy_storage_and_cache_reset(driver)
