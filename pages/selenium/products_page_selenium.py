@@ -152,13 +152,19 @@ class ProductsPage(BasePage):
             price_value = float(clean_text)
             selected_prices.append(price_value)
             self.log_step(f"Adding product #{i + 1} priced at ${price_value}")
-            add_btn = card.find_element(By.CLASS_NAME, "add-to-cart")
+            add_loc = (
+                By.XPATH,
+                "(//div[contains(@class,'k-card')][.//button[contains(@class,'add-to-cart')]])"
+                f"[{i + 1}]//button[contains(@class,'add-to-cart')]",
+            )
             previous_count = self._current_cart_count()
-            add_btn.click()
+            self.safe_click(add_loc, retries=3)
             try:
-                self._wait_for_cart_count_increment(previous_count, timeout=5)
-            except Exception:
-                self.log_warn("Cart badge did not increment in time; continuing with total verification.")
+                self._wait_for_cart_count_increment(previous_count, timeout=8)
+            except TimeoutException:
+                self.log_warn("Cart badge did not increment; retrying add click once.")
+                self.safe_click(add_loc, retries=2)
+                self._wait_for_cart_count_increment(previous_count, timeout=8)
         expected_total = sum(selected_prices)
 
         # Open cart
@@ -259,7 +265,7 @@ class ProductsPage(BasePage):
         return len(self.driver.find_elements(*alt)) > 0
 
     def _cart_kendo_item_count(self):
-        """Approximate line-item count from Kendo grid when present; -1 if unavailable."""
+        """Legacy Kendo dataSource length; can lie vs DOM — prefer _cart_shopping_grid_line_count."""
         self._accept_any_alert()
         with contextlib.suppress(Exception):
             n = self.driver.execute_script(
@@ -269,6 +275,7 @@ class ProductsPage(BasePage):
                 if (!g) { return -1; }
                 try {
                     var ds = g.dataSource;
+                    if (ds && ds.data && typeof ds.data === "function") { return ds.data().length; }
                     if (ds && typeof ds.total === "function") { return ds.total(); }
                     return g.items().length;
                 } catch (e) { return -1; }
@@ -278,13 +285,82 @@ class ProductsPage(BasePage):
                 return int(n)
         return -1
 
+    def _cart_shopping_grid_line_count(self):
+        """
+        Count tbody data rows on #shoppingCartGrid (excludes k-grid-norecords template rows).
+        More reliable than dataSource.total() when the grid UI and server state disagree.
+        """
+        self._accept_any_alert()
+        with contextlib.suppress(Exception):
+            n = self.driver.execute_script(
+                r"""
+                var grid = document.querySelector("#shoppingCartGrid");
+                if (!grid) { return -1; }
+                var tbody = grid.querySelector("tbody");
+                if (!tbody) { return -1; }
+                var rows = tbody.querySelectorAll("tr");
+                var c = 0;
+                for (var i = 0; i < rows.length; i++) {
+                    var tr = rows[i];
+                    if (tr.classList.contains("k-grid-norecords")) { continue; }
+                    var tds = tr.querySelectorAll("td");
+                    if (tds.length === 0) { continue; }
+                    if (tr.querySelector("[id^='remove_'], .remove-product, td.final-price")) { c++; }
+                }
+                return c;
+                """
+            )
+            if n is not None:
+                return int(n)
+        return -1
+
+    def _cart_subtotal_numeric(self):
+        """Parse #subTotalValue; None if missing or not a money amount."""
+        self._accept_any_alert()
+        with contextlib.suppress(Exception):
+            el = self.driver.find_element(*self.CART_TOTAL_PRICE)
+            txt = el.text.strip()
+            if not txt or not re.search(r"\d", txt):
+                return None
+            normalized = re.sub(r"\s+", "", txt.replace("$", "").replace(",", ""))
+            return float(normalized)
+        return None
+
     def _is_cart_effectively_empty(self):
-        """True when cart page shows no line items (message and/or zero Kendo rows)."""
+        """
+        True only when the shopping cart page shows no billable lines:
+        no grid line rows, no remove controls, subtotal ~0, header badge 0.
+        """
+        self._accept_any_alert()
+        if self._get_remove_buttons():
+            return False
+
+        line_rows = self._cart_shopping_grid_line_count()
+        if line_rows > 0:
+            return False
+        if line_rows < 0:
+            # Grid not in DOM yet — not confidently empty.
+            if self.driver.find_elements(By.ID, "shoppingCartGrid"):
+                return False
+
+        sub = self._cart_subtotal_numeric()
+        if sub is not None and sub > 0.02:
+            return False
+
+        k = self._cart_kendo_item_count()
+        if k is not None and k > 0:
+            return False
+
+        if self._current_cart_count() > 0:
+            return False
+
         if self._is_cart_empty_message_visible():
             return True
-        n = self._cart_kendo_item_count()
-        if n == 0:
+
+        # Grid present with 0 line rows and $0 subtotal (or no subtotal yet)
+        if line_rows == 0 and self.driver.find_elements(By.ID, "shoppingCartGrid"):
             return True
+
         return False
 
     def assert_shopping_cart_empty(self, timeout=12):
@@ -302,9 +378,12 @@ class ProductsPage(BasePage):
             self._wait(lambda d: self._is_cart_effectively_empty(), timeout=timeout)
         except TimeoutException as exc:
             n = self._cart_kendo_item_count()
+            lines = self._cart_shopping_grid_line_count()
+            sub = self._cart_subtotal_numeric()
             badge = self._current_cart_count()
             raise AssertionError(
-                f"Shopping cart is not empty (kendo_items={n}, header_badge_count={badge})."
+                f"Shopping cart is not empty (grid_lines={lines}, kendo={n}, "
+                f"subtotal={sub}, header_badge={badge})."
             ) from exc
         # Match clear_cart() post-condition: listing tests expect Home/Bikes context.
         self._open_bikes_landing_from_clear()
