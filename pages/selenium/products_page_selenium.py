@@ -170,6 +170,14 @@ class ProductsPage(BasePage):
                 except TimeoutException:
                     self.click_with_js(add_loc)
                     self._wait_for_cart_count_increment(previous_count, timeout=12)
+        # Header badge must match adds (detects leftover lines + 3 new items without failing only at total assert).
+        try:
+            self._wait_for_header_cart_badge(count, timeout=18)
+        except TimeoutException as exc:
+            raise AssertionError(
+                f"After adding {count} products, header cart badge expected {count}, "
+                f"got {self._current_cart_count()} (possible stale cart or missed clicks)."
+            ) from exc
         expected_total = sum(selected_prices)
 
         # Open cart
@@ -313,8 +321,8 @@ class ProductsPage(BasePage):
                     var tr = rows[i];
                     if (tr.classList.contains("k-grid-norecords")) { continue; }
                     var tds = tr.querySelectorAll("td");
-                    if (tds.length === 0) { continue; }
-                    if (tr.querySelector("[id^='remove_'], .remove-product, td.final-price")) { c++; }
+                    /* Data rows usually have multiple cells; do not require remove/final-price in-row (merged layouts). */
+                    if (tds.length >= 2) { c++; }
                 }
                 return c;
                 """
@@ -372,19 +380,28 @@ class ProductsPage(BasePage):
 
         return False
 
+    def _verify_shopping_cart_empty_via_reload(self, timeout=12):
+        """
+        Load ShoppingCart twice from the server. Catches stale DOM / cache where the first
+        paint looks empty but line items still exist (seen on Windows + slow Telerik demo).
+        """
+        for pass_num in range(2):
+            self._get_url_fast(
+                self.SHOPPING_CART_URL,
+                "ShoppingCart",
+                part_timeout=max(12, timeout),
+            )
+            self._wait(lambda d: self._is_cart_effectively_empty(), timeout=timeout)
+            self.log_info(f"Shopping cart empty check pass {pass_num + 1}/2 OK.")
+
     def assert_shopping_cart_empty(self, timeout=12):
         """
         Open the cart page and fail fast if line items or totals still indicate a non-empty cart.
         Call after clear_cart() when the test depends on a zero baseline.
         On success, navigates to Home/Bikes (same as clear_cart()) so the next step can open categories.
         """
-        self._get_url_fast(
-            self.SHOPPING_CART_URL,
-            "ShoppingCart",
-            part_timeout=max(12, timeout),
-        )
         try:
-            self._wait(lambda d: self._is_cart_effectively_empty(), timeout=timeout)
+            self._verify_shopping_cart_empty_via_reload(timeout=timeout)
         except TimeoutException as exc:
             n = self._cart_kendo_item_count()
             lines = self._cart_shopping_grid_line_count()
