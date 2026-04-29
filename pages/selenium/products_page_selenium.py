@@ -179,7 +179,7 @@ class ProductsPage(BasePage):
                     (s := self._cart_subtotal_numeric()) is not None
                     and abs(s - expected_total) < 0.08
                 ),
-                timeout=25,
+                timeout=18,
             )
         except TimeoutException as exc:
             sub = self._cart_subtotal_numeric()
@@ -190,18 +190,18 @@ class ProductsPage(BasePage):
                 f"(got subtotal={sub}, grid_lines={lines}, header_badge={badge})."
             ) from exc
 
-        # Open cart (same as before; may refresh from listing chrome)
-        self.click(self.CART_ICON)
+        # Already on ShoppingCart: skip extra navigation (same assertions as opening via icon).
+        if "ShoppingCart" not in (self.driver.current_url or ""):
+            self.click(self.CART_ICON)
 
         # Wait for cart total to settle before reading value.
         self.log_step("Waiting for cart total recalculation")
         self._wait(
             lambda d: "$" in d.find_element(*self.CART_TOTAL_PRICE).text.strip(),
-            timeout=8,
+            timeout=6,
         )
 
         try:
-            # Read total value element
             total_element = self.driver.find_element(*self.CART_TOTAL_PRICE)
             actual_total_text = total_element.text
             self.log_info(f"Raw cart total text: '{actual_total_text}'")

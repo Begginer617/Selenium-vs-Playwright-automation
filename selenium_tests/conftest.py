@@ -16,6 +16,32 @@ from pages.selenium.registration_page_selenium import RegistrationPage
 from pages.selenium.products_page_selenium import ProductsPage
 
 
+def _heavy_storage_and_cache_reset(driver):
+    """IndexedDB + cache clear (slow). Call once per browser session for speed."""
+    with contextlib.suppress(Exception):
+        driver.get(ESHOP_ENTRY_URL)
+    with contextlib.suppress(Exception):
+        driver.execute_cdp_cmd(
+            "Storage.clearDataForOrigin",
+            {"origin": ESHOP_CDP_ORIGIN, "storageTypes": "all"},
+        )
+    with contextlib.suppress(Exception):
+        driver.execute_cdp_cmd("Network.clearBrowserCache", {})
+
+
+def _light_browser_reset(driver):
+    """Fast isolation between tests: same origin, cookies + web storage only."""
+    with contextlib.suppress(Exception):
+        driver.get(ESHOP_ENTRY_URL)
+    with contextlib.suppress(Exception):
+        driver.delete_all_cookies()
+    with contextlib.suppress(Exception):
+        driver.execute_script(
+            "try { localStorage.clear(); } catch (e) {}"
+            "try { sessionStorage.clear(); } catch (e) {}"
+        )
+
+
 # --- Driver factory ---
 class DriverFactory:
     @staticmethod
@@ -83,32 +109,32 @@ def driver(request):
     driver.implicitly_wait(0)
     with contextlib.suppress(Exception):
         driver.maximize_window()
+
+    # One heavy Chromium reset per session (major speed win vs per-test CDP).
+    _heavy_storage_and_cache_reset(driver)
+    setattr(driver, "_selenium_heavy_storage_cleared", True)
+
     yield driver
 
     # 4. Teardown.
     driver.quit()
 
+
 # --- Per-test browser-state reset on shared driver ---
 @pytest.fixture(autouse=True)
 def reset_browser_state(driver):
-    # Keep tests isolated while reusing one browser instance for speed.
-    with contextlib.suppress(Exception):
-        driver.get(ESHOP_ENTRY_URL)
-    with contextlib.suppress(Exception):
-        driver.delete_all_cookies()
-    with contextlib.suppress(Exception):
-        driver.execute_script(
-            "try { localStorage.clear(); } catch (e) {}"
-            "try { sessionStorage.clear(); } catch (e) {}"
-        )
-    # Chromium: clear IndexedDB, cache storage, etc. for the origin
-    with contextlib.suppress(Exception):
-        driver.execute_cdp_cmd(
-            "Storage.clearDataForOrigin",
-            {"origin": ESHOP_CDP_ORIGIN, "storageTypes": "all"},
-        )
-    with contextlib.suppress(Exception):
-        driver.execute_cdp_cmd("Network.clearBrowserCache", {})
+    """
+    Keep tests isolated while reusing one browser instance.
+
+    Heavy CDP (IndexedDB + network cache) runs once per session in ``driver`` fixture.
+    Between tests: fast navigation + cookies + session/local storage only.
+    Safe for pytest-xdist: each worker has its own session-scoped driver.
+    """
+    if getattr(driver, "_selenium_heavy_storage_cleared", False):
+        _light_browser_reset(driver)
+    else:
+        _heavy_storage_and_cache_reset(driver)
+        setattr(driver, "_selenium_heavy_storage_cleared", True)
     yield
 
 
