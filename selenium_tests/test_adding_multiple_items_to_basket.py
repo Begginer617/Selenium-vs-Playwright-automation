@@ -12,6 +12,8 @@ def test_multiple_products_total_calculation(home_page_selenium, login_page_sele
     print("[STEP] Clear cart before multi-product total verification.")
     # POM clear_cart() returns to the Bikes landing page when done
     product_page_selenium.clear_cart()
+    # Hard check on /ShoppingCart so we never add products on top of a stale cart
+    product_page_selenium.assert_shopping_cart_empty()
 
     print("[STEP] Open mountain bikes category.")
     product_page_selenium.open_mountain_bikes()
