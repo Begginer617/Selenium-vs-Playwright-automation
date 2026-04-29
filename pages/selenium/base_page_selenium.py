@@ -3,6 +3,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
+    ElementNotInteractableException,
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
@@ -93,7 +94,12 @@ class BasePage:
             try:
                 self.wait_for_clickable(locator).click()
                 return
-            except (TimeoutException, StaleElementReferenceException, ElementClickInterceptedException) as exc:
+            except (
+                TimeoutException,
+                StaleElementReferenceException,
+                ElementClickInterceptedException,
+                ElementNotInteractableException,
+            ) as exc:
                 last_exception = exc
                 if attempt < retries - 1:
                     # Re-check clickability quickly without fixed sleeps.

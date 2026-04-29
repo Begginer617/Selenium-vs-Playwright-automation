@@ -5,7 +5,11 @@ import time
 import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    StaleElementReferenceException,
+    TimeoutException,
+)
 from selenium.webdriver.support.wait import WebDriverWait
 
 from pages.selenium.base_page_selenium import BasePage
@@ -172,8 +176,9 @@ class ProductsPage(BasePage):
             actual_total_text = total_element.text
             self.log_info(f"Raw cart total text: '{actual_total_text}'")
 
-            # Convert "$1,234.56" -> 1234.56
-            actual_total = float(actual_total_text.replace('$', '').replace(',', '').strip())
+            # Convert "$1,234.56" or "$ 1,234.56" -> 1234.56
+            normalized = re.sub(r"\s+", "", actual_total_text.replace("$", "").replace(",", ""))
+            actual_total = float(normalized)
         except Exception as e:
             # Preserve context if total cannot be parsed.
             self.log_error(f"Failed to read cart total: {e}")
@@ -237,8 +242,77 @@ class ProductsPage(BasePage):
                 return visible_elements
         return []
 
-    def _is_cart_empty_visible(self):
-        return len(self.driver.find_elements(*self.EMPTY_CART_MESSAGE)) > 0
+    def _is_cart_empty_message_visible(self):
+        """DOM message such as 'Your shopping cart is empty'."""
+        if self.driver.find_elements(*self.EMPTY_CART_MESSAGE):
+            return True
+        # Alternate copy on some builds / locales
+        alt = (
+            By.XPATH,
+            "//*[contains(translate(normalize-space(.), "
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "
+            "'nothing in your cart') or contains(translate(normalize-space(.), "
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'shopping cart is empty')]",
+        )
+        return len(self.driver.find_elements(*alt)) > 0
+
+    def _cart_kendo_item_count(self):
+        """Approximate line-item count from Kendo grid when present; -1 if unavailable."""
+        with contextlib.suppress(Exception):
+            n = self.driver.execute_script(
+                """
+                if (!window.jQuery) { return -1; }
+                var g = jQuery("#shoppingCartGrid").data("kendoGrid");
+                if (!g) { return -1; }
+                try {
+                    var ds = g.dataSource;
+                    if (ds && typeof ds.total === "function") { return ds.total(); }
+                    return g.items().length;
+                } catch (e) { return -1; }
+                """
+            )
+            if n is not None:
+                return int(n)
+        return -1
+
+    def _is_cart_effectively_empty(self):
+        """True when cart page shows no line items (message and/or zero Kendo rows)."""
+        if self._is_cart_empty_message_visible():
+            return True
+        n = self._cart_kendo_item_count()
+        if n == 0:
+            return True
+        return False
+
+    def _clear_cart_via_remove_buttons(self, max_clicks=40):
+        """Remove line items via visible Remove controls (server path when Kendo script fails)."""
+        for _ in range(max_clicks):
+            if self._is_cart_effectively_empty():
+                return True
+            buttons = self._get_remove_buttons()
+            if not buttons:
+                break
+            btn = buttons[0]
+            try:
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", btn
+                )
+            except Exception:
+                pass
+            try:
+                btn.click()
+            except (StaleElementReferenceException, ElementNotInteractableException):
+                with contextlib.suppress(Exception):
+                    self.driver.execute_script("arguments[0].click();", btn)
+            try:
+                self._wait(
+                    lambda d: self._is_cart_effectively_empty()
+                    or len(self._get_remove_buttons()) < len(buttons),
+                    timeout=5,
+                )
+            except TimeoutException:
+                self.log_warn("Remove click did not update cart DOM in time; retrying.")
+        return self._is_cart_effectively_empty()
 
     def _get_page_load_timeout(self):
         t = 4.0
@@ -332,25 +406,28 @@ class ProductsPage(BasePage):
             )
             try:
                 self._wait(
-                    lambda d: self._is_cart_empty_visible()
+                    lambda d: self._is_cart_effectively_empty()
                     or len(d.find_elements(By.ID, "shoppingCartGrid")) > 0
                     or len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) > 0
                     or len(d.find_elements(By.CSS_SELECTOR, "[id^='remove_']")) > 0,
-                    timeout=8,
+                    timeout=10,
                 )
             except TimeoutException:
-                self.log_warn("Cart page shell did not stabilize in time; attempting Kendo clear anyway.")
+                self.log_warn("Cart page shell did not stabilize in time; attempting clear anyway.")
 
-            if self._is_cart_empty_visible():
+            if self._is_cart_effectively_empty():
                 self._open_bikes_landing_from_clear()
                 return
 
             self._clear_shopping_cart_grid_kendo()
-            # Kendo sync/removeRow is async; poll for empty cart instead of fixed sleep.
+            if not self._is_cart_effectively_empty():
+                self.log_warn("Kendo script clear incomplete; falling back to Remove button clicks.")
+                self._clear_cart_via_remove_buttons()
+
             try:
-                self._wait(lambda d: self._is_cart_empty_visible(), timeout=6)
+                self._wait(lambda d: self._is_cart_effectively_empty(), timeout=10)
             except TimeoutException:
-                self.log_warn("Cart still not showing empty after clear script; will retry outer loop.")
+                self.log_warn("Cart still not empty after clear attempts; will retry outer loop.")
 
         self._open_bikes_landing_from_clear()
 
@@ -534,10 +611,14 @@ class ProductsPage(BasePage):
 
             option_name = option_element.text
             try:
-                self.safe_click(locator, retries=2)
+                self.safe_click(locator, retries=3)
             except TimeoutException:
                 self.log_warn(f"Standard sort-option click failed; using JS click for '{option_name}'")
-                self.driver.execute_script("arguments[0].click();", option_element)
+                try:
+                    fresh = self.wait_for_visible(locator, timeout=3)
+                    self.driver.execute_script("arguments[0].click();", fresh)
+                except (TimeoutException, StaleElementReferenceException):
+                    self.driver.execute_script("arguments[0].click();", option_element)
 
             self._wait(
                 lambda d: option_name.lower() in d.find_element(*self.SORT_DROPDOWN_TRIGGER).text.lower(),
