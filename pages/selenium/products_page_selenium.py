@@ -81,7 +81,11 @@ class ProductsPage(BasePage):
         # 2. Click Add to Cart
         previous_count = self._current_cart_count()
         self.click(self.ADD_TO_CART_BUTTON)
-        time.sleep(0.2)
+        try:
+            self._wait_for_cart_count_increment(previous_count, timeout=4)
+        except TimeoutException:
+            # Badge can lag on slow networks; cart assertion below still validates outcome.
+            self.log_warn("Cart badge did not increment before opening cart; continuing.")
 
         # 3. Open cart
         self.click(self.CART_ICON)
@@ -262,7 +266,9 @@ class ProductsPage(BasePage):
             with contextlib.suppress(Exception):
                 self.driver.get(url)
         except Exception:
-            time.sleep(0.3)
+            # Brief explicit wait for navigation to settle instead of a blind sleep.
+            with contextlib.suppress(TimeoutException):
+                self.wait_for_url(url_part, timeout=2)
         with contextlib.suppress(TimeoutException):
             self.wait_for_url(url_part, timeout=part_timeout)
         with contextlib.suppress(Exception):
@@ -324,18 +330,27 @@ class ProductsPage(BasePage):
                 "ShoppingCart",
                 part_timeout=12,
             )
-            for _ in range(50):
-                if self._is_cart_empty_visible():
-                    self._open_bikes_landing_from_clear()
-                    return
-                if self.driver.find_elements(By.ID, "shoppingCartGrid"):
-                    break
-                if self._get_remove_buttons():
-                    break
-                time.sleep(0.2)
+            try:
+                self._wait(
+                    lambda d: self._is_cart_empty_visible()
+                    or len(d.find_elements(By.ID, "shoppingCartGrid")) > 0
+                    or len(d.find_elements(*self.REMOVE_ITEM_BUTTONS)) > 0
+                    or len(d.find_elements(By.CSS_SELECTOR, "[id^='remove_']")) > 0,
+                    timeout=8,
+                )
+            except TimeoutException:
+                self.log_warn("Cart page shell did not stabilize in time; attempting Kendo clear anyway.")
+
+            if self._is_cart_empty_visible():
+                self._open_bikes_landing_from_clear()
+                return
 
             self._clear_shopping_cart_grid_kendo()
-            time.sleep(0.5)
+            # Kendo sync/removeRow is async; poll for empty cart instead of fixed sleep.
+            try:
+                self._wait(lambda d: self._is_cart_empty_visible(), timeout=6)
+            except TimeoutException:
+                self.log_warn("Cart still not showing empty after clear script; will retry outer loop.")
 
         self._open_bikes_landing_from_clear()
 
@@ -365,11 +380,13 @@ class ProductsPage(BasePage):
 
     def _wait_for_product_grid_ready(self, timeout=5):
         """Wait for product cards and related listing markers to appear."""
+        # `len(...) >= 0` was always true, so the wait effectively required only cards
+        # and could return before pager/Kendo finished rendering (flaky clicks/asserts).
         self._wait(
             lambda d: len(d.find_elements(*self.PRODUCT_CARD)) > 0
             and (
                 len(d.find_elements(*self.PAGER_INFO)) > 0
-                or len(d.find_elements(*self.DISCOUNT_PERCENT_BADGE)) >= 0
+                or len(d.find_elements(*self.DISCOUNT_PERCENT_BADGE)) > 0
             ),
             timeout=timeout,
         )

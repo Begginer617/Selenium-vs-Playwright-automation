@@ -78,7 +78,9 @@ def driver(request):
     # 3. Initialize driver.
     driver = DriverFactory.get_driver(run_remote=remote_opt, options=options)
     driver.set_page_load_timeout(4)
-    driver.implicitly_wait(3)
+    # Explicit waits only: mixing implicit + WebDriverWait inflates every poll with
+    # implicit delay and causes hard-to-debug hangs (see BasePage._wait).
+    driver.implicitly_wait(0)
     with contextlib.suppress(Exception):
         driver.maximize_window()
     yield driver
