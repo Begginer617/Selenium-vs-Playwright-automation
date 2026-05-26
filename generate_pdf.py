@@ -5,8 +5,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 
 # === CONFIG ===
-ROOT_DIR = "."  #katalog repo
-OUTPUT_FILE = "full_repo_documentation_Selenium_vs_Playwright.pdf"
+ROOT_DIR = "."  # katalog repo (zmień jeśli chcesz)
+OUTPUT_FILE = "repo_documentation.pdf"
 
 EXCLUDE_DIRS = {".git", "venv", "__pycache__", ".idea", ".vscode"}
 INCLUDE_EXTENSIONS = {".py", ".txt", ".md", ".json", ".yaml", ".yml"}
