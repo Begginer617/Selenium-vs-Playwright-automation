@@ -361,3 +361,17 @@ docker compose down
 ## License / thesis
 
 Use and cite this repository according to your institution’s rules for academic work. The automated target is a **public demo**; do not use production secrets in tests.
+
+
+## Pytest-reporting in HTML
+Installation
+pip install pytest-html
+
+Running Tests with an HTML Report
+pytest --html=reports/report.html --self-contained-html
+
+report.html — the generated report that you can open in any browser.
+
+--self-contained-html — ensures the report is saved as a single, standalone file (without separate folders for assets like CSS or images).
+
+
