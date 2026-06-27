@@ -375,3 +375,9 @@ report.html — the generated report that you can open in any browser.
 --self-contained-html — ensures the report is saved as a single, standalone file (without separate folders for assets like CSS or images).
 
 
+VENV activation and installation:
+python -m venv venv
+
+.\venv\Scripts\Activate.ps1
+
+
